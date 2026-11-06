@@ -356,6 +356,8 @@ function TopluModal({ k, kullanici, onKapat }: { k: Kapsam; kullanici: string; o
           kullaniciAdi: kul,
           sifreHash: await sifreHashle(h.sifre || rastgeleSifre()),
           sifreDegisimZorunlu: true,
+          // Firma hesabı doğrudan açamaz; İSG onayına gider
+          hesapTalebi: k.firma?.unvan ?? 'Firma',
           islemNotu: `Toplu ekleme — ${kullanici} (firma portalı)`,
         }
       }))

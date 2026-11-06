@@ -72,6 +72,17 @@ export const dosyaOku = (file: File): Promise<string> =>
     okuyucu.readAsDataURL(file)
   })
 
+/**
+ * Data URL'yi blob URL'ye çevirir. Büyük PDF'lerde iframe'e doğrudan data URL vermek
+ * tarayıcıda boş görünüme yol açabilir; blob URL bu sorunu önler. Çağıran URL'i serbest bırakmalı.
+ */
+export const blobUrlOlustur = (dataUrl: string): string => {
+  const [baslik = '', veri = ''] = dataUrl.split(',', 2)
+  const mime = baslik.match(/^data:([^;,]+)/)?.[1] ?? 'application/octet-stream'
+  const baytlar = Uint8Array.from(atob(veri), (karakter) => karakter.charCodeAt(0))
+  return URL.createObjectURL(new Blob([baytlar], { type: mime }))
+}
+
 export const dosyaIndir = (e: Evrak) => {
   const a = document.createElement('a')
   a.href = e.icerik

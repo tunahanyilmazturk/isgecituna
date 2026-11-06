@@ -88,6 +88,7 @@ export default function FirmaLayout() {
     menu.find((m) => (m.end ? pathname === m.to : pathname.startsWith(m.to)))?.label ?? 'Portal'
 
   const tumUygulamaBildirimleri = useBildirimStore((s) => s.bildirimler)
+  const hedefiOkundu = useBildirimStore((s) => s.hedefiOkundu)
   const firmaId = kapsam.firma?.id
   const firmaBildirimleri = useMemo(
     () =>
@@ -163,6 +164,7 @@ export default function FirmaLayout() {
           aktif={aktif}
           kullaniciTo="/firma/hesap"
           bildirimler={[...firmaBildirimleri, ...bildirimler]}
+          onOkundu={() => hedefiOkundu(`firma:${firmaId}`)}
         />
         <main className="min-w-0 flex-1 overflow-y-auto pb-24 lg:pb-0">
           <Outlet />

@@ -50,6 +50,8 @@ export interface TopluKayit {
   /** Şifre özeti (lib/sifre.ts) — çağıran hash'ler; store açık şifre almaz */
   sifreHash: string
   sifreDegisimZorunlu: boolean
+  /** Firma tarafından açılan toplu talep: hesap İSG onayına kadar 'Onay Bekliyor' kalır */
+  hesapTalebi?: string
   islemNotu: string
 }
 
@@ -74,7 +76,12 @@ interface PersonelState {
   personelGuncelle: (id: string, patch: Partial<FirmaPersonel>) => void
   personelDurum: (id: string, durum: PersonelDurum) => void
   firmaDegistir: (id: string, firmaId: string) => void
-  hesapOlustur: (personelId: string, kullaniciAdi: string, mod: 'davet' | 'sifre', sifreHash?: string) => PortalHesap
+  /** 'talep': firma açılış talebi — hesap İSG onaylayana kadar 'Onay Bekliyor' kalır */
+  hesapOlustur: (personelId: string, kullaniciAdi: string, mod: 'davet' | 'sifre' | 'talep', sifreHash?: string, talepEden?: string) => PortalHesap
+  /** İSG onayı: talebi kapatır, hesabı aktif eder */
+  hesapOnayla: (hesapId: string, kim: string) => void
+  /** İSG reddi: hesabı pasife alır; personel geçmişine yazılır */
+  hesapReddet: (hesapId: string, kim: string) => void
   hesapGuncelle: (id: string, patch: Partial<PortalHesap>) => void
   davetYenile: (hesapId: string) => string
   davetKabul: (tkn: string, sifreHash: string) => boolean
@@ -167,32 +174,63 @@ export const usePersonelStore = create<PersonelState>()(
           ),
         })),
 
-      hesapOlustur: (personelId, kullaniciAdi, mod, sifreHash) => {
+      hesapOlustur: (personelId, kullaniciAdi, mod, sifreHash, talepEden) => {
         const personel = get().personeller.find((p) => p.id === personelId)
         if (!personel) throw new Error('Personel bulunamadı')
         if (get().hesaplar.some((h) => h.personelId === personelId && h.durum !== 'Pasif'))
           throw new Error('Bu personelin zaten aktif bir hesabı var')
+        const talep = mod === 'talep'
         const yeni: PortalHesap = {
           id: nid('PH'),
           personelId,
           kullaniciAdi,
           eposta: personel.eposta,
-          sifreHash: mod === 'sifre' && sifreHash ? sifreHash : undefined,
-          sifreDegisimTarihi: mod === 'sifre' && sifreHash ? new Date().toISOString() : undefined,
+          sifreHash: mod !== 'davet' && sifreHash ? sifreHash : undefined,
+          sifreDegisimTarihi: mod !== 'davet' && sifreHash ? new Date().toISOString() : undefined,
+          sifreDegisimZorunlu: talep ? true : undefined,
           davetToken: mod === 'davet' ? token() : undefined,
           davetBitis:
             mod === 'davet' ? new Date(Date.now() + 7 * 86400000).toISOString() : undefined,
-          durum: mod === 'davet' ? 'Davet Bekliyor' : 'Aktif',
+          durum: mod === 'davet' ? 'Davet Bekliyor' : talep ? 'Onay Bekliyor' : 'Aktif',
+          hesapTalebi: talep ? { firma: talepEden ?? 'Firma', tarih: TODAY } : undefined,
           oturumlar: [],
           olusturma: TODAY,
         }
         set((s) => ({
           hesaplar: [...s.hesaplar, yeni],
           personeller: s.personeller.map((p) =>
-            p.id === personelId ? gecmisEkle(p, `Kullanıcı hesabı oluşturuldu (@${kullaniciAdi})`) : p,
+            p.id === personelId
+              ? gecmisEkle(p, talep ? `Hesap talebi açıldı (@${kullaniciAdi}) — İSG onayı bekleniyor` : `Kullanıcı hesabı oluşturuldu (@${kullaniciAdi})`)
+              : p,
           ),
         }))
         return yeni
+      },
+
+      hesapOnayla: (hesapId, kim) => {
+        const h = get().hesaplar.find((x) => x.id === hesapId)
+        if (!h || h.durum !== 'Onay Bekliyor') return
+        set((s) => ({
+          hesaplar: s.hesaplar.map((x) =>
+            x.id === hesapId ? { ...x, durum: 'Aktif', hesapTalebi: undefined } : x,
+          ),
+          personeller: s.personeller.map((p) =>
+            p.id === h.personelId ? gecmisEkle(p, `Hesap talebi onaylandı (${kim})`) : p,
+          ),
+        }))
+      },
+
+      hesapReddet: (hesapId, kim) => {
+        const h = get().hesaplar.find((x) => x.id === hesapId)
+        if (!h || h.durum !== 'Onay Bekliyor') return
+        set((s) => ({
+          hesaplar: s.hesaplar.map((x) =>
+            x.id === hesapId ? { ...x, durum: 'Pasif', hesapTalebi: undefined } : x,
+          ),
+          personeller: s.personeller.map((p) =>
+            p.id === h.personelId ? gecmisEkle(p, `Hesap talebi reddedildi (${kim})`) : p,
+          ),
+        }))
       },
 
       hesapGuncelle: (id, patch) =>
@@ -391,7 +429,8 @@ export const usePersonelStore = create<PersonelState>()(
               sifreHash: k.sifreHash,
               sifreDegisimTarihi: k.sifreHash ? new Date().toISOString() : undefined,
               sifreDegisimZorunlu: k.sifreDegisimZorunlu,
-              durum: 'Aktif',
+              durum: k.hesapTalebi ? 'Onay Bekliyor' : 'Aktif',
+              hesapTalebi: k.hesapTalebi ? { firma: k.hesapTalebi, tarih: TODAY } : undefined,
               oturumlar: [],
               olusturma: TODAY,
             }

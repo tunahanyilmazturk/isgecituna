@@ -452,7 +452,7 @@ export default function RiskDetayPage() {
             <div className="space-y-2">
               <button
                 disabled={!pdfIzni}
-                onClick={() => void riskPdfIndir(d).then(() => toast.success('PDF indirildi'))}
+                onClick={() => void riskPdfIndir(d).then(() => toast.success('PDF indirildi')).catch(() => toast.error('PDF üretilemedi'))}
                 className="flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted/40 disabled:opacity-50"
               >
                 <FileTextIcon className="size-5 text-red-500" />
@@ -464,7 +464,7 @@ export default function RiskDetayPage() {
               </button>
               <button
                 disabled={!pdfIzni}
-                onClick={() => void aksiyonPdfIndir(akListe, d.ad, d.firmaAd).then(() => toast.success('Aksiyon raporu indirildi'))}
+                onClick={() => void aksiyonPdfIndir(akListe, d.ad, d.firmaAd).then(() => toast.success('Aksiyon raporu indirildi')).catch(() => toast.error('Aksiyon raporu üretilemedi'))}
                 className="flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted/40 disabled:opacity-50"
               >
                 <FileTextIcon className="size-5 text-sky-500" />

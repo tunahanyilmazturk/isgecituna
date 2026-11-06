@@ -11,6 +11,8 @@ export interface PortalBildirim {
   baslik: string
   detay: string
   to: string
+  /** Kalıcı kayıtlarda okundu bilgisi; hesaplanan uyarılarda yoktur */
+  okundu?: boolean
 }
 
 const tonlar: Record<PortalBildirim['ton'], string> = {
@@ -19,18 +21,26 @@ const tonlar: Record<PortalBildirim['ton'], string> = {
   emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
 }
 
-function BildirimMenusu({ bildirimler }: { bildirimler: PortalBildirim[] }) {
+const anahtar = (b: PortalBildirim) => `${b.baslik}|${b.detay}`
+
+/** Zil açıldığında bildirimler okundu sayılır; kalıcı kayıtlar için üst katmana bildirilir. */
+function BildirimMenusu({ bildirimler, onOkundu }: { bildirimler: PortalBildirim[]; onOkundu?: () => void }) {
   const [open, setOpen] = useState(false)
-  const [okundu, setOkundu] = useState(false)
-  const navigate = useNavigate()
-  const okunmamis = okundu ? 0 : bildirimler.length
+  const [yerelOkunan, setYerelOkunan] = useState<Set<string>>(new Set())
+  const okunmamis = bildirimler.filter((b) => !b.okundu && !yerelOkunan.has(anahtar(b))).length
+
+  const ac = () => {
+    setYerelOkunan(new Set(bildirimler.map(anahtar)))
+    onOkundu?.()
+    setOpen(true)
+  }
 
   return (
     <div className="relative">
       <button
         type="button"
         aria-label={`Bildirimler${okunmamis > 0 ? ` (${okunmamis})` : ''}`}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (open ? setOpen(false) : ac())}
         className="relative flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
         <BellIcon className="size-4" />
@@ -44,55 +54,15 @@ function BildirimMenusu({ bildirimler }: { bildirimler: PortalBildirim[] }) {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden />
           <div className="absolute top-full right-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border bg-popover shadow-lg">
-            <div className="flex items-center justify-between border-b px-4 py-2.5">
+            <div className="border-b px-4 py-2.5">
               <p className="text-sm font-medium">Bildirimler</p>
-              {okunmamis > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setOkundu(true)}
-                  className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Tümünü okundu say
-                </button>
-              )}
             </div>
             {bildirimler.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-muted-foreground">
                 Yeni bildirim yok — her şey yolunda.
               </p>
             ) : (
-              <ul className="max-h-80 overflow-y-auto p-1.5">
-                {bildirimler.map((b, i) => (
-                  <li key={i}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpen(false)
-                        navigate(b.to)
-                      }}
-                      className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-accent"
-                    >
-                      <span
-                        className={cn(
-                          'flex size-7 shrink-0 items-center justify-center rounded-lg',
-                          tonlar[b.ton],
-                        )}
-                      >
-                        <b.ikon className="size-3.5" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium">{b.baslik}</span>
-                        <span className="block truncate text-xs text-muted-foreground">
-                          {b.detay}
-                        </span>
-                      </span>
-                      {i < okunmamis && (
-                        <span className="size-1.5 shrink-0 rounded-full bg-amber-400" />
-                      )}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <BildirimListesi bildirimler={bildirimler} yerelOkunan={yerelOkunan} onKapat={() => setOpen(false)} />
             )}
           </div>
         </>
@@ -101,11 +71,52 @@ function BildirimMenusu({ bildirimler }: { bildirimler: PortalBildirim[] }) {
   )
 }
 
+function BildirimListesi({
+  bildirimler,
+  yerelOkunan,
+  onKapat,
+}: {
+  bildirimler: PortalBildirim[]
+  yerelOkunan: Set<string>
+  onKapat: () => void
+}) {
+  const navigate = useNavigate()
+  return (
+    <ul className="max-h-80 overflow-y-auto p-1.5">
+      {bildirimler.map((b) => {
+        const yeni = !b.okundu && !yerelOkunan.has(anahtar(b))
+        return (
+          <li key={anahtar(b)}>
+            <button
+              type="button"
+              onClick={() => {
+                onKapat()
+                navigate(b.to)
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-accent"
+            >
+              <span className={cn('flex size-7 shrink-0 items-center justify-center rounded-lg', tonlar[b.ton])}>
+                <b.ikon className="size-3.5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className={cn('block truncate text-sm', yeni ? 'font-semibold' : 'font-medium text-muted-foreground')}>{b.baslik}</span>
+                <span className="block truncate text-xs text-muted-foreground">{b.detay}</span>
+              </span>
+              {yeni && <span className="size-1.5 shrink-0 rounded-full bg-amber-400" />}
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 export function PortalTopbar({
   kok,
   aktif,
   kullaniciTo,
   bildirimler,
+  onOkundu,
 }: {
   /** Breadcrumb kökü — firma kısa adı veya portal adı */
   kok: string
@@ -114,6 +125,8 @@ export function PortalTopbar({
   /** Kullanıcı bloğunun gideceği sayfa */
   kullaniciTo: string
   bildirimler: PortalBildirim[]
+  /** Zil açıldığında kalıcı bildirimlerin okundu işaretlenmesi için */
+  onOkundu?: () => void
 }) {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
@@ -126,7 +139,7 @@ export function PortalTopbar({
         <span className="truncate font-medium">{aktif}</span>
       </nav>
       <div className="ml-auto flex items-center gap-1">
-        <BildirimMenusu bildirimler={bildirimler} />
+        <BildirimMenusu bildirimler={bildirimler} onOkundu={onOkundu} />
         <ThemeToggle />
         <div className="ml-1 flex items-center gap-2 border-l pl-3">
           <Link

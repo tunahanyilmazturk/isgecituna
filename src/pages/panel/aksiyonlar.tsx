@@ -135,7 +135,7 @@ export default function AksiyonlarPage() {
         </div>
         {aktarIzni && (
           <>
-            <Button variant="outline" size="sm" onClick={() => void aksiyonPdfIndir(filtreli, 'Aksiyon Takip Raporu', osgbAd()).then(() => toast.success('Rapor indirildi'))}>
+            <Button variant="outline" size="sm" onClick={() => void aksiyonPdfIndir(filtreli, 'Aksiyon Takip Raporu', osgbAd()).then(() => toast.success('Rapor indirildi')).catch(() => toast.error('Rapor üretilemedi'))}>
               <FileTextIcon /> Rapor
             </Button>
             <Button variant="outline" size="sm" onClick={() => void excelAktar()}>

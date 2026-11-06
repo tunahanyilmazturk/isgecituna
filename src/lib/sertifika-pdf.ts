@@ -1,9 +1,11 @@
 /*
- * Sertifika PDF üretimi — belge canvas'a çizilir (Türkçe karakterler ve
- * Geist fontu tarayıcıda doğal desteklenir), PNG olarak jsPDF'e gömülür.
+ * Sertifika PDF üretimi (eski motor) — tasarımı olmayan eski kayıtlar için.
+ * Belge canvas'a çizilir (Türkçe karakterler ve Geist fontu tarayıcıda doğal
+ * desteklenir), görüntü olarak ortak belge kurucusuyla (pdf-utils) PDF'e gömülür.
  * A4 yatay, kurumsal tasarım, QR doğrulama kodu.
  */
 import { dogrulamaUrl, type Sertifika } from '@/data/sertifikalar'
+import { pdfOlustur } from '@/lib/pdf-utils'
 import { osgbAd, osgbLogoHarf, osgbLogoVeri } from '@/lib/osgb'
 
 const W = 2339 // 297mm @ ~200dpi
@@ -30,6 +32,8 @@ export const sertifikaCiz = async (
   w = W,
   h = H,
 ): Promise<void> => {
+  // Canvas, yüklenmemiş bir web fontunu sessizce yedek fontla çizer; önce fontların yüklenmesini bekle.
+  await Promise.all([400, 600, 700, 800].map((agirlik) => document.fonts.load(`${agirlik} 20px 'Geist Variable'`))).catch(() => undefined)
   const k = w / W // ölçek
   const px = (v: number) => v * k
   const ana = s.sablonSnap.anaRenk
@@ -268,41 +272,17 @@ export const sertifikaPng = (s: Sertifika): Promise<string> => {
   return onizleme.get(key)!
 }
 
+/** Sertifika PDF'inin meta verisi — başlık ve eğitim adı; kişisel ad belge özelliklerine yazılmaz */
+export const sertifikaPdfMeta = (s: Sertifika) => ({ baslik: `${s.sertifikaNo} · ${s.egitimAd}`, konu: 'Eğitim sertifikası' })
+
 /** Değişmez belge — her seferinde donmuş görüntüden aynı çıktı üretilir */
 export const sertifikaPdfIndir = async (s: Sertifika): Promise<void> => {
-  const { jsPDF } = await import('jspdf')
-  const cv = await cizim(s)
-  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-  pdf.addImage(cv.toDataURL('image/png'), 'PNG', 0, 0, 297, 210, undefined, 'FAST')
+  const pdf = await pdfOlustur([{ cv: await cizim(s), yon: 'yatay' }], sertifikaPdfMeta(s))
   pdf.save(`${s.sertifikaNo}.pdf`)
-}
-
-/** PDF'i yeni sekmede görüntüle */
-export const sertifikaPdfAc = async (s: Sertifika): Promise<void> => {
-  const { jsPDF } = await import('jspdf')
-  const cv = await cizim(s)
-  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-  pdf.addImage(cv.toDataURL('image/png'), 'PNG', 0, 0, 297, 210, undefined, 'FAST')
-  window.open(pdf.output('bloburl'), '_blank')
 }
 
 /** Eski motorla PDF'in blob URL'i — önizleme penceresine yönlendirmek için (window.open çağırmaz). */
 export const sertifikaPdfUrlEski = async (s: Sertifika): Promise<string> => {
-  const { jsPDF } = await import('jspdf')
-  const cv = await cizim(s)
-  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-  pdf.addImage(cv.toDataURL('image/png'), 'PNG', 0, 0, 297, 210, undefined, 'FAST')
+  const pdf = await pdfOlustur([{ cv: await cizim(s), yon: 'yatay' }], sertifikaPdfMeta(s))
   return String(pdf.output('bloburl'))
-}
-
-/** PNG görüntüsünü yeni pencerede yazdırılabilir hâlde aç */
-export const sertifikaYazdir = async (s: Sertifika): Promise<void> => {
-  const url = await sertifikaPng(s)
-  const w = window.open('', '_blank')
-  if (!w) return
-  w.document.write(
-    `<html><head><title>${s.sertifikaNo}</title><style>@page{size:A4 landscape;margin:0}body{margin:0}img{width:100%}</style></head>` +
-      `<body><img src="${url}" onload="setTimeout(()=>{print();close()},100)"></body></html>`,
-  )
-  w.document.close()
 }

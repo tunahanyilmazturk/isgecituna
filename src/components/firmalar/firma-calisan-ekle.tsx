@@ -99,8 +99,9 @@ export function FirmaCalisanEkle({ firmaId, firmaUnvan, kullanici, hesapIzni, on
     let hesapNot = ''
     if (hesaAktif) {
       try {
-        hesapOlustur(p.id, kul.trim(), 'sifre', await sifreHashle(sifre))
-        hesapNot = ` · giriş hesabı açıldı (@${kul.trim()})`
+        // Firma hesabı doğrudan açamaz: talep İSG onayına gider, onaylanana kadar giriş yapılamaz
+        hesapOlustur(p.id, kul.trim(), 'talep', await sifreHashle(sifre), firmaUnvan)
+        hesapNot = ` · giriş hesabı talebi İSG onayına gönderildi (@${kul.trim()})`
       } catch (e) {
         hesapNot = ` · hesap açılamadı: ${(e as Error).message}`
       }

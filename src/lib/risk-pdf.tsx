@@ -16,6 +16,13 @@ import {
 
 type SayfaYap = (no: number, toplam: number) => ReactElement
 
+/** Sayfaları sırayla render eder; her sayfa ayrı DOM kökü açtığı için eşzamanlı çalıştırmak bellek yükünü artırır. */
+async function sayfalariCiz(sayfalar: SayfaYap[]): Promise<HTMLCanvasElement[]> {
+  const canvaslar: HTMLCanvasElement[] = []
+  for (const [i, yap] of sayfalar.entries()) canvaslar.push(await elToCanvas(yap(i + 1, sayfalar.length)))
+  return canvaslar
+}
+
 export async function riskPdfIndir(d: RiskDegerlendirme): Promise<void> {
   const { tehlikeler, aksiyonlar, yontemler } = useRiskStore.getState()
   const thListe = tehlikeler.filter((t) => t.degerlendirmeId === d.id && !t.silindi)
@@ -63,9 +70,7 @@ export async function riskPdfIndir(d: RiskDegerlendirme): Promise<void> {
     <RiskImzaSayfasi d={d} surumNot={surumNot} no={no} toplam={toplam} />
   ))
 
-  const toplam = sayfalar.length
-  const canvaslar = await Promise.all(sayfalar.map((yap, i) => elToCanvas(yap(i + 1, toplam))))
-  await pdfYaz(canvaslar, `risk-degerlendirme-${d.id}-v${d.surum}.pdf`)
+  await pdfYaz(await sayfalariCiz(sayfalar), `risk-degerlendirme-${d.id}-v${d.surum}.pdf`)
 }
 
 /** Aksiyon takip raporu — merkezi aksiyon listesi için */
@@ -79,7 +84,5 @@ export async function aksiyonPdfIndir(aksiyonlar: RiskAksiyon[], baslik: string,
       <AksiyonRaporSayfasi baslik={baslik} firmaAd={firmaAd} aksiyonlar={aksiyonlar} dilim={dilim} raporTarihi={raporTarihi} no={no} toplam={toplam} />
     ))
   }
-  const toplam = sayfalar.length
-  const canvaslar = await Promise.all(sayfalar.map((yap, i) => elToCanvas(yap(i + 1, toplam))))
-  await pdfYaz(canvaslar, `aksiyon-raporu-${raporTarihi}.pdf`)
+  await pdfYaz(await sayfalariCiz(sayfalar), `aksiyon-raporu-${raporTarihi}.pdf`)
 }

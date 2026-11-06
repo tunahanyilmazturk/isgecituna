@@ -109,6 +109,7 @@ export default function PortalLayout() {
   )
 
   const tumUygulamaBildirimleri = useBildirimStore((s) => s.bildirimler)
+  const hedefiOkundu = useBildirimStore((s) => s.hedefiOkundu)
   const katilimciBildirimleri = useMemo(
     () =>
       tumUygulamaBildirimleri
@@ -172,6 +173,7 @@ export default function PortalLayout() {
           aktif={aktif}
           kullaniciTo="/portal/profil"
           bildirimler={[...katilimciBildirimleri, ...bildirimler]}
+          onOkundu={() => hedefiOkundu(`katilimci:${pid}`)}
         />
         <main className="min-w-0 flex-1 overflow-y-auto pb-24 lg:pb-0">
           <Outlet />

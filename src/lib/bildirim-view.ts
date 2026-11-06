@@ -8,4 +8,5 @@ export const bildirimGorunumu = (b: UygulamaBildirimi) => ({
   baslik: b.baslik,
   detay: b.detay,
   to: b.to,
+  okundu: b.okundu,
 })

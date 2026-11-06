@@ -56,6 +56,8 @@ type Adim = { tip: 'icerik'; ic: Icerik; bolum: string } | { tip: 'sinav' }
 type SunumSlayti = { adimIx: number; ic: Icerik; slaytIx: number; slayt: NonNullable<Icerik['slaytlar']>[number] }
 
 const fmtSn = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
+const oynatmaHizlari = [0.5, 0.75, 1, 1.25, 1.5, 2]
+const tamponBitisi = (v: HTMLVideoElement) => (v.buffered.length ? v.buffered.end(v.buffered.length - 1) : 0)
 const karistir = <T,>(liste: T[]): T[] => {
   const sonuc = [...liste]
   for (let i = sonuc.length - 1; i > 0; i--) {
@@ -560,6 +562,33 @@ function VideoOynatici({
   const enIleriRef = useRef(il?.izlenenSn ?? 0)
   const [enIleri, setEnIleri] = useState(il?.izlenenSn ?? 0)
   const sonZaman = useRef(0)
+  const [tampon, setTampon] = useState(0)
+  const [kontrolAcik, setKontrolAcik] = useState(true)
+  const [klavyeOdakta, setKlavyeOdakta] = useState(false)
+  const [uyari, setUyari] = useState('')
+  const kontrolZamanlayici = useRef<number | undefined>(undefined)
+  const uyariZamanlayici = useRef<number | undefined>(undefined)
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(kontrolZamanlayici.current)
+      window.clearTimeout(uyariZamanlayici.current)
+    },
+    [],
+  )
+
+  // Kontroller hareketle görünür olur; oynatılırken birkaç saniye sonra gizlenir
+  const kontrolGoster = () => {
+    setKontrolAcik(true)
+    window.clearTimeout(kontrolZamanlayici.current)
+    kontrolZamanlayici.current = window.setTimeout(() => setKontrolAcik(false), 2500)
+  }
+
+  const uyariGoster = (mesaj: string) => {
+    setUyari(mesaj)
+    window.clearTimeout(uyariZamanlayici.current)
+    uyariZamanlayici.current = window.setTimeout(() => setUyari(''), 2500)
+  }
 
   const kaynak = ic.dosya?.url ?? hariciKaynak ?? (ic.tur === 'harici-video' ? undefined : ic.url)
   const src = useEgitimDosyaUrl(kaynak)
@@ -593,9 +622,20 @@ function VideoOynatici({
   // Konum, izlenen en uzak noktanın ötesine atlanamaz (kaydırıcı, ok tuşları, sar düğmeleri, native kontrol)
   const atlamayiSinirla = (v: HTMLVideoElement) => {
     const sinir = atlamaSiniri(v.currentTime, enIleriRef.current)
-    if (sinir !== v.currentTime) v.currentTime = sinir
+    if (sinir !== v.currentTime) {
+      v.currentTime = sinir
+      uyariGoster('Henüz izlemediğiniz bölüme geçemezsiniz')
+    }
     sonZaman.current = v.currentTime
   }
+
+  const hizDegistir = () => {
+    const yeni = oynatmaHizlari[(oynatmaHizlari.indexOf(hiz) + 1) % oynatmaHizlari.length]
+    setHiz(yeni)
+    if (ref.current) ref.current.playbackRate = yeni
+  }
+
+  const yuzdeKonum = (deger: number) => (toplam > 0 ? Math.min(100, (deger / toplam) * 100) : 0)
 
   const sar = (d: number) => {
     if (ref.current) ref.current.currentTime = Math.max(0, ref.current.currentTime + d)
@@ -604,7 +644,8 @@ function VideoOynatici({
   const oynatDuraklat = () => {
     const video = ref.current
     if (!video) return
-    if (video.paused) void video.play().catch(() => setHata(true))
+    // Kullanıcı etkileşimli oynatmada yalnızca desteklenmeyen kaynak gerçek hata sayılır
+    if (video.paused) void video.play().catch((err: unknown) => { if (err instanceof DOMException && err.name === 'NotSupportedError') setHata(true) })
     else video.pause()
   }
 
@@ -638,7 +679,7 @@ function VideoOynatici({
   }
 
   return (
-    <div ref={kutuRef} className={cn('mx-auto flex min-h-full w-full max-w-6xl flex-col p-3 sm:p-4', tamEkran && 'max-w-none bg-background')}>
+    <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col p-3 sm:p-4">
       <div className="mb-3 flex min-w-0 items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-500"><FileVideoIcon className="size-5" /></div>
@@ -648,12 +689,18 @@ function VideoOynatici({
           </div>
         </div>
         <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium', tamam ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground')}>
-          {tamam ? 'Tamamlandı' : `%${yuzde} izlendi`}
+          {il?.tamamlandi ? 'Tamamlandı' : tamam ? 'Tamamlanabilir' : `%${yuzde} izlendi`}
         </span>
       </div>
 
-      <div className="relative aspect-video min-h-[220px] w-full max-h-[58vh] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-xl shadow-black/20">
+      <div
+        ref={kutuRef}
+        onPointerMove={kontrolGoster}
+        onPointerDown={kontrolGoster}
+        className={cn('relative aspect-video min-h-[220px] w-full max-h-[58vh] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-xl shadow-black/20', tamEkran && 'aspect-auto h-dvh max-h-none w-screen rounded-none border-0')}
+      >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,158,11,0.11),transparent_38%)]" />
+        {uyari && <p role="status" className="pointer-events-none absolute top-3 left-1/2 z-20 -translate-x-1/2 rounded-lg bg-black/70 px-3 py-1.5 text-xs text-amber-300 backdrop-blur-sm">{uyari}</p>}
         {hata ? (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 px-6 text-center text-white">
             <div className="flex size-12 items-center justify-center rounded-2xl bg-red-500/10 text-red-400"><FileVideoIcon className="size-6" /></div>
@@ -668,11 +715,26 @@ function VideoOynatici({
             src={src}
             className="absolute inset-0 h-full w-full object-contain"
             onTimeUpdate={zamanGuncelle}
-            onPlay={() => setOynuyor(true)}
-            onPause={() => setOynuyor(false)}
+            onPlay={() => {
+              setOynuyor(true)
+              kontrolGoster()
+            }}
+            onPause={() => {
+              setOynuyor(false)
+              setKontrolAcik(true)
+              window.clearTimeout(kontrolZamanlayici.current)
+            }}
+            onWaiting={() => setYukleniyor(true)}
+            onPlaying={() => setYukleniyor(false)}
+            onProgress={(e) => setTampon(tamponBitisi(e.currentTarget))}
             onLoadedMetadata={(e) => {
               setToplam(e.currentTarget.duration)
               setYukleniyor(false)
+              // Kayıtlı en uzak nokta süreyi aşıyorsa (dosya değişmiş olabilir) süreyle sınırlanır
+              if (enIleriRef.current > e.currentTarget.duration) {
+                enIleriRef.current = e.currentTarget.duration
+                setEnIleri(e.currentTarget.duration)
+              }
               // Kaldığı yerden devam (en uzak izlenen noktadan)
               if (il?.izlenenSn && il.izlenenSn < e.currentTarget.duration - 5) {
                 e.currentTarget.currentTime = il.izlenenSn
@@ -694,8 +756,30 @@ function VideoOynatici({
         )}
         {yukleniyor && !hata && <div className="absolute inset-0 flex items-center justify-center bg-black/35 text-xs text-white/70"><span className="mr-2 size-4 animate-spin rounded-full border-2 border-white/25 border-t-amber-400" /> Video hazırlanıyor…</div>}
         {!hata && !yukleniyor && !oynuyor && <button type="button" onClick={oynatDuraklat} aria-label="Videoyu oynat" className="absolute top-1/2 left-1/2 z-10 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/55 text-white shadow-lg backdrop-blur-sm transition hover:scale-105 hover:bg-amber-500 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-400"><PlayIcon className="ml-1 size-7 fill-current" /></button>}
-        {!hata && <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black via-black/90 to-transparent px-3 pt-12 pb-3 sm:px-5 sm:pb-4">
-          <input type="range" min={0} max={Math.max(enIleri, 0.1)} step={0.1} value={sn} onChange={(e) => { const value = atlamaSiniri(Number(e.target.value), enIleriRef.current); if (ref.current) ref.current.currentTime = value; setSn(value) }} className="mb-3 h-1.5 w-full cursor-pointer accent-amber-400" aria-label="Video konumu" aria-valuetext={`${fmtSn(sn)} / ${fmtSn(toplam)} · izlenen ${fmtSn(enIleri)}`} />
+        {!hata && <div onFocus={() => setKlavyeOdakta(true)} onBlur={() => setKlavyeOdakta(false)} className={cn('absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black via-black/90 to-transparent px-3 pt-12 pb-3 transition-opacity duration-300 sm:px-5 sm:pb-4', oynuyor && !kontrolAcik && !klavyeOdakta && 'pointer-events-none opacity-0')}>
+          <div className="relative mb-3 h-5">
+            <div className="pointer-events-none absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 overflow-hidden rounded-full bg-white/20">
+              <div className="absolute inset-y-0 left-0 bg-white/25" style={{ width: `${yuzdeKonum(tampon)}%` }} />
+              <div className="absolute inset-y-0 left-0 bg-amber-400/70" style={{ width: `${yuzdeKonum(enIleri)}%` }} />
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(toplam, 0.1)}
+              step={0.1}
+              value={sn}
+              onChange={(e) => {
+                const istenen = Number(e.target.value)
+                const value = atlamaSiniri(istenen, enIleriRef.current)
+                if (value !== istenen) uyariGoster('Henüz izlemediğiniz bölüme geçemezsiniz')
+                if (ref.current) ref.current.currentTime = value
+                setSn(value)
+              }}
+              className="absolute inset-0 h-full w-full cursor-pointer bg-transparent accent-amber-400 [&::-moz-range-track]:bg-transparent [&::-webkit-slider-runnable-track]:bg-transparent"
+              aria-label="Video konumu"
+              aria-valuetext={`${fmtSn(sn)} / ${fmtSn(toplam)} · izlenen ${fmtSn(enIleri)}`}
+            />
+          </div>
           <div className="flex items-center gap-1.5 text-white sm:gap-2">
             <button type="button" aria-label="10 saniye geri sar" onClick={() => sar(-10)} className="flex size-9 items-center justify-center rounded-lg text-white/75 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-amber-400"><RotateCcwIcon className="size-4" /><span className="sr-only">10 saniye geri</span></button>
             <button type="button" aria-label={oynuyor ? 'Videoyu duraklat' : 'Videoyu oynat'} onClick={oynatDuraklat} className="flex size-10 items-center justify-center rounded-xl bg-amber-400 text-zinc-950 transition hover:bg-amber-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">{oynuyor ? <PauseIcon className="size-5 fill-current" /> : <PlayIcon className="ml-0.5 size-5 fill-current" />}</button>
@@ -703,7 +787,7 @@ function VideoOynatici({
             <span className="ml-1 min-w-[88px] text-xs tabular-nums text-white/85">{fmtSn(sn)} <span className="text-white/40">/</span> {fmtSn(toplam)}</span>
             <span className="hidden text-[11px] text-white/55 sm:inline">· %{yuzde} izlendi</span>
             <div className="ml-auto flex items-center gap-1 sm:gap-2">
-              <label className="hidden items-center gap-1.5 text-[11px] text-white/60 sm:flex"><span>Hız</span><select value={hiz} onChange={(e) => { const h = Number(e.target.value); setHiz(h); if (ref.current) ref.current.playbackRate = h }} className="h-8 rounded-lg border border-white/15 bg-zinc-900 px-2 text-xs text-white outline-none focus-visible:border-amber-400" aria-label="Oynatma hızı">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((h) => <option key={h} value={h}>{h}×</option>)}</select></label>
+              <button type="button" onClick={hizDegistir} title="Oynatma hızını değiştir" aria-label={`Oynatma hızı ${hiz}×, değiştirmek için dokunun`} className="flex h-9 min-w-9 items-center justify-center rounded-lg px-1.5 text-xs font-medium tabular-nums text-white/75 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-amber-400">{hiz}×</button>
               <button type="button" aria-label={sessiz ? 'Sesi aç' : 'Sesi kapat'} onClick={() => setSessiz((s) => { if (ref.current) ref.current.muted = !s; return !s })} className="flex size-9 items-center justify-center rounded-lg text-white/75 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-amber-400">{sessiz ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}</button>
               <button type="button" aria-label={tamEkran ? 'Tam ekrandan çık' : 'Tam ekrana geç'} onClick={() => void tamEkranToggle()} className="flex size-9 items-center justify-center rounded-lg text-white/75 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-amber-400">{tamEkran ? <Minimize2Icon className="size-4" /> : <Maximize2Icon className="size-4" />}</button>
             </div>

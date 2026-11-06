@@ -43,6 +43,7 @@ export function NotificationsMenu() {
   const bulgular = useDenetimlerStore((s) => s.bulgular)
   const aksiyonlar = useRiskStore((s) => s.aksiyonlar)
   const uygulamaBildirimleri = useBildirimStore((s) => s.bildirimler)
+  const hedefiOkundu = useBildirimStore((s) => s.hedefiOkundu)
 
   // İSG uzmanına giden uygulama bildirimleri (firma işlemleri, başvurular, atamalar)
   const osgbBildirimleri = useMemo(
@@ -221,7 +222,9 @@ export function NotificationsMenu() {
   )
 
   const tumBildirimler = [...osgbBildirimleri, ...bildirimler]
-  const okunmamis = okundu ? 0 : tumBildirimler.length
+  // Uygulama bildirimleri kendi okundu bilgisini taşır; hesaplanan uyarılar yerel işaretle yönetilir
+  const osgbOkunmamis = osgbBildirimleri.filter((b) => !b.okundu).length
+  const okunmamis = (okundu ? 0 : bildirimler.length) + osgbOkunmamis
 
   return (
     <div className="relative">
@@ -247,7 +250,10 @@ export function NotificationsMenu() {
               {okunmamis > 0 && (
                 <button
                   type="button"
-                  onClick={() => setOkundu(true)}
+                  onClick={() => {
+                    setOkundu(true)
+                    hedefiOkundu('osgb')
+                  }}
                   className="text-xs text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Tümünü okundu say

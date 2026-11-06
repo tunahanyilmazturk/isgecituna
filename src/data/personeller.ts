@@ -10,7 +10,8 @@ import type { IlerlemeDurum } from '@/data/egitimler'
  */
 
 export type PersonelDurum = 'Aktif' | 'İzinli' | 'Pasif' | 'Ayrıldı'
-export type HesapDurum = 'Yok' | 'Aktif' | 'Davet Bekliyor' | 'Askıda' | 'Pasif'
+/** 'Onay Bekliyor': firma tarafından açılmak istenen hesap, İSG onayı gelene kadar giriş yapamaz */
+export type HesapDurum = 'Yok' | 'Aktif' | 'Davet Bekliyor' | 'Askıda' | 'Pasif' | 'Onay Bekliyor'
 export type AtamaDurum = 'Aktif' | 'İptal' | 'Tamamlandı'
 export type KisiDurum =
   | 'Bekliyor'
@@ -50,6 +51,8 @@ export interface PortalHesap {
   sifreDegisimZorunlu?: boolean
   /** Şifrenin en son belirlendiği / değiştirildiği an (ISO) */
   sifreDegisimTarihi?: string
+  /** Firma hesap talebi: talebi açan firma ve tarih. Onaylanınca kaldırılır. */
+  hesapTalebi?: { firma: string; tarih: string }
   davetToken?: string
   davetBitis?: string
   durum: Exclude<HesapDurum, 'Yok'>

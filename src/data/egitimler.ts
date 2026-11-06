@@ -140,6 +140,18 @@ export const egitimSuresiDakika = (e: Egitim): number => {
   return aktif ? surumSuresiDakika(aktif) : e.sureDakika
 }
 
+/** Aktif sürüm için içerik kalitesi uyarıları (yayın öncesi ve katalog görünümünde gösterilir). */
+export const kaliteUyarilari = (e: Egitim): string[] => {
+  const aktif = e.surumler.find((s) => s.id === e.aktifSurumId)
+  if (!aktif) return ['Aktif sürüm yok']
+  const uyarilar: string[] = []
+  if (!aktif.sinav) uyarilar.push('Sınav yok')
+  if (surumSuresiDakika(aktif) < 30) uyarilar.push('Kısa içerik')
+  const icerikler = aktif.bolumler.flatMap((b) => b.icerikler)
+  if (icerikler.some((i) => i.tur === 'video' && i.dosya?.url?.includes('storage.googleapis.com'))) uyarilar.push('Örnek video')
+  return uyarilar
+}
+
 export const varsayilanTamamlama = (): TamamlamaAyarlari => ({
   videoMinYuzde: 90,
   zorunluBolumlerTumu: true,

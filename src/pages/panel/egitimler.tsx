@@ -44,7 +44,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useIzin } from '@/lib/izin'
 import { aktifSurum, useEgitimlerStore } from '@/stores/egitimler-store'
-import { egitimSuresiDakika } from '@/data/egitimler'
+import { egitimSuresiDakika, kaliteUyarilari } from '@/data/egitimler'
 import { xlsxDosyaAdi, xlsxIndir } from '@/lib/excel'
 import { useOtoBoy } from '@/lib/use-oto-boy'
 
@@ -371,22 +371,29 @@ export default function EgitimlerPage() {
                     ) : (
                       <span className="line-clamp-2 text-sm leading-5 font-semibold tracking-tight">{e.baslik}</span>
                     )}
-                    <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-muted-foreground">{e.aciklama}</p>
+                    <p className="mt-1 line-clamp-2 text-xs leading-4 text-muted-foreground">{e.aciklama}</p>
+                    {kaliteUyarilari(e).length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {kaliteUyarilari(e).map((u) => (
+                          <span key={u} className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">{u}</span>
+                        ))}
+                      </div>
+                    )}
                     <div className="mt-auto grid grid-cols-3 divide-x rounded-lg border bg-muted/25 py-1.5">
                       <div className="px-2 text-center">
                         <span className="block text-sm leading-4 font-semibold tabular-nums">{ist.bolumSayisi}</span>
-                        <span className="text-[10px] text-muted-foreground">bölüm</span>
+                        <span className="text-[11px] text-muted-foreground">bölüm</span>
                       </div>
                       <div className="px-2 text-center">
                         <span className="block text-sm leading-4 font-semibold tabular-nums">{ist.icerikSayisi}</span>
-                        <span className="text-[10px] text-muted-foreground">içerik</span>
+                        <span className="text-[11px] text-muted-foreground">içerik</span>
                       </div>
                       <div className="px-2 text-center">
                         <span className="block text-sm leading-4 font-semibold tabular-nums">{ist.soruSayisi}</span>
-                        <span className="text-[10px] text-muted-foreground">soru</span>
+                        <span className="text-[11px] text-muted-foreground">soru</span>
                       </div>
                     </div>
-                    <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
+                    <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
                       <span className="inline-flex items-center gap-1"><ClockIcon className="size-3" /> {egitimSuresiDakika(e)} dk <span className="mx-0.5 text-border">/</span> v{sv.no}</span>
                       <span>Güncelleme {e.guncelleme}</span>
                     </div>

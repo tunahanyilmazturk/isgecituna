@@ -52,7 +52,7 @@ export default function PersonelDetayPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const { personeller, hesaplar, atamalar, hesapOlustur, hesapGuncelle, davetYenile, oturumKapat, kullaniciAlinmi, sifreSifirla } = usePersonelStore()
+  const { personeller, hesaplar, atamalar, hesapOlustur, hesapGuncelle, davetYenile, oturumKapat, kullaniciAlinmi, sifreSifirla, hesapOnayla, hesapReddet } = usePersonelStore()
   const firmalar = useFirmalarStore((s) => s.firmalar)
   const { egitimler, ilerlemeler } = useEgitimlerStore()
   const [sekme, setSekme] = useState<string>(params.get('sekme') ?? 'genel')
@@ -83,7 +83,7 @@ export default function PersonelDetayPage() {
   const yaklasanlar = atms.filter((a) => a.durum === 'Aktif' && a.sonTarih >= TODAY && ilOf(a)?.durum !== 'Tamamlandı').sort((a, b) => a.sonTarih.localeCompare(b.sonTarih)).slice(0, 3)
 
   const hesapRenk = hesap
-    ? ({ Aktif: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', 'Davet Bekliyor': 'bg-amber-500/10 text-amber-600 dark:text-amber-400', 'Askıda': 'bg-red-500/10 text-red-500' } as Record<string, string>)[hesap.durum]
+    ? ({ Aktif: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', 'Davet Bekliyor': 'bg-amber-500/10 text-amber-600 dark:text-amber-400', 'Onay Bekliyor': 'bg-amber-500/10 text-amber-600 dark:text-amber-400', 'Askıda': 'bg-red-500/10 text-red-500' } as Record<string, string>)[hesap.durum]
     : ''
 
   const hesapAc = () => {
@@ -279,6 +279,16 @@ export default function PersonelDetayPage() {
                     <Satir label="Şifre değişimi">{hesap.sifreDegisimZorunlu ? 'Zorunlu — ilk girişte değiştirilecek' : 'Gerekmiyor'}</Satir>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
+                    {hesap.durum === 'Onay Bekliyor' && (
+                      <div className="w-full rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
+                        <p className="font-medium">Firma hesap talebi — {hesap.hesapTalebi?.firma ?? 'Firma'}</p>
+                        <p className="mt-1 text-muted-foreground">Talep {hesap.hesapTalebi?.tarih ?? '—'} tarihinde açıldı. Onaylanana kadar çalışan giriş yapamaz.</p>
+                        <div className="mt-2 flex gap-2">
+                          <Button size="sm" onClick={() => { hesapOnayla(hesap.id, kullanici); toast.success('Hesap talebi onaylandı; çalışan giriş yapabilir') }}>Onayla</Button>
+                          <Button size="sm" variant="outline" onClick={() => { hesapReddet(hesap.id, kullanici); toast('Hesap talebi reddedildi') }}>Reddet</Button>
+                        </div>
+                      </div>
+                    )}
                     {hesap.durum === 'Davet Bekliyor' && (
                       <Button size="sm" variant="outline" onClick={() => { const t = davetYenile(hesap.id); navigator.clipboard?.writeText(`${location.origin}/davet/${t}`).catch(() => {}); toast.success('Yeni davet bağlantısı panoya kopyalandı') }}>
                         <MailPlusIcon /> Daveti yenile
