@@ -773,7 +773,7 @@ function SayfaOynatici({
           <div className="flex items-center justify-between border-b px-2.5 py-2 sm:px-3.5">
             <div className="flex items-center gap-1">
               <button type="button" aria-label="Önceki sayfa" disabled={sayfa === 0} onClick={() => git(sayfa - 1)} className="flex size-7 items-center justify-center rounded-md hover:bg-muted disabled:opacity-30"><ChevronLeftIcon className="size-4" /></button>
-              <span className="text-xs tabular-nums text-muted-foreground">Sayfa {sayfa + 1} / {toplam}</span>
+              {mod === 'pdf' && <span className="text-xs tabular-nums text-muted-foreground">Sayfa {sayfa + 1} / {toplam}</span>}
               <button type="button" aria-label="Sonraki sayfa" disabled={sayfa >= toplam - 1} onClick={() => git(sayfa + 1)} className="flex size-7 items-center justify-center rounded-md hover:bg-muted disabled:opacity-30"><ChevronRightIcon className="size-4" /></button>
             </div>
             <div className="flex items-center gap-1">
