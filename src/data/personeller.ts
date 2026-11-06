@@ -1,5 +1,5 @@
 import { TODAY } from '@/data/dashboard'
-import { sifreHashle } from '@/data/ekip'
+import { DEMO_SIFRE_OZETI } from '@/data/sifre-seed'
 import type { IlerlemeDurum } from '@/data/egitimler'
 
 /*
@@ -48,6 +48,8 @@ export interface PortalHesap {
   sifreHash?: string
   /** Toplu oluşturulan geçici şifre — ilk girişte değiştirilmeden portala erişim yok */
   sifreDegisimZorunlu?: boolean
+  /** Şifrenin en son belirlendiği / değiştirildiği an (ISO) */
+  sifreDegisimTarihi?: string
   davetToken?: string
   davetBitis?: string
   durum: Exclude<HesapDurum, 'Yok'>
@@ -98,7 +100,6 @@ export interface EgitimAtama {
   zorunlu: boolean
   hatirlatmaGun: number // 0 = hatırlatma yok
   /** OSGB yönetimi açarsa firma yetkilisi bu atamaya kendi çalışanlarını ekleyebilir */
-  firmaEkleyebilir?: boolean
   durum: AtamaDurum
   olusturan: string
   olaylar: { tarih: string; islem: string }[]
@@ -159,7 +160,7 @@ export const portalHesapSeed: PortalHesap[] = [
     personelId: 'FP-01',
     kullaniciAdi: 'cdemir',
     eposta: 'cem.demir@akdenizmetal.com.tr',
-    sifreHash: sifreHashle('123456'),
+    sifreHash: DEMO_SIFRE_OZETI,
     durum: 'Aktif',
     sonGiris: '2026-11-02T09:30:00',
     oturumlar: [
@@ -223,7 +224,6 @@ export const atamaSeed: EgitimAtama[] = [
     sonTarih: '2026-11-20',
     zorunlu: true,
     hatirlatmaGun: 3,
-    firmaEkleyebilir: true,
     durum: 'Aktif',
     olusturan: 'Tunahan Yılmaztürk',
     olaylar: [{ tarih: '2026-10-20', islem: 'Atama oluşturuldu — 3 personel' }],
@@ -238,7 +238,6 @@ export const atamaSeed: EgitimAtama[] = [
     sonTarih: '2026-11-15',
     zorunlu: true,
     hatirlatmaGun: 5,
-    firmaEkleyebilir: true,
     durum: 'Aktif',
     olusturan: 'Tunahan Yılmaztürk',
     olaylar: [{ tarih: '2026-10-25', islem: 'Atama oluşturuldu — 2 personel' }],

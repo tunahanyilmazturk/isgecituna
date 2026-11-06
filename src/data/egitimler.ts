@@ -130,6 +130,16 @@ export const soruBankasiSeed: BankaSoru[] = [
 
 /* ------------------------------ Tamamlama -------------------------------- */
 
+/** Bir sürümün toplam süresi (dk) — içeriklerin süre toplamı. Süre bilgisinin tek kaynağı. */
+export const surumSuresiDakika = (s: EgitimSurum): number =>
+  s.bolumler.flatMap((b) => b.icerikler).reduce((n, i) => n + i.sureDakika, 0)
+
+/** Kursun gösterilecek süresi (dk): aktif sürümün içerik toplamı; aktif sürüm yoksa kayıtlı değer. */
+export const egitimSuresiDakika = (e: Egitim): number => {
+  const aktif = e.surumler.find((s) => s.id === e.aktifSurumId)
+  return aktif ? surumSuresiDakika(aktif) : e.sureDakika
+}
+
 export const varsayilanTamamlama = (): TamamlamaAyarlari => ({
   videoMinYuzde: 90,
   zorunluBolumlerTumu: true,
@@ -347,7 +357,7 @@ const temelIsgSurum3: EgitimSurum = surum('ES-0103', 3, [
     ic('IC-0112', 'metin', 'Alarm, tahliye ve ilk güvenli davranış', { aciklama: 'Acil durumlarda önceliği ve toplanma adımlarını öğrenin.', metinIcerik: `## Alarm duyduğunda\nİşyerinin acil durum planını ve görevli yönlendirmelerini izle. İşi güvenli biçimde bırak, belirlenmiş kaçış yoluna yönel, asansör kullanma ve toplanma alanına git. Dumanlı alanda geri dönme; eşyalarını almak veya görüntü kaydetmek için tahliyeyi geciktirme. Toplanma alanında yoklamaya katıl ve yeni talimat bekle.\n\n## Yangın başlangıcı\nAlarm ver, çevrendekileri uyar ve işyerinin acil durum iletişim yöntemini kullan. Yangınla mücadele eğitimin yoksa müdahale etme. Eğitimli olsan bile uygun ekipman, güvenli kaçış yolu ve yetki yoksa yaklaşma; tahliye önceliklidir. Elektrik veya kimyasal kaynaklı yangında yanlış söndürücü kullanımı tehlikeyi büyütebilir.\n\n## Yaralanma veya sağlık olayı\nAlanı güvenli hale getir, yardım çağır ve işyerinin ilk yardım/acil durum prosedürünü uygula. Eğitimli olmadığın bir müdahaleyi deneme; acil durumda 112’yi ara veya görevlilerin aramasını sağla.`, sureDakika: 7 }),
     ic('IC-0113', 'metin', 'Ramak kala ve olay bildirimi', { aciklama: 'Olaylardan öğrenerek benzer durumların tekrarını önleyin.', metinIcerik: `## Hangi olaylar bildirilir?\nYaralanma olmasa da düşen cisim, kayma tehlikesi, koruyucusu çıkarılmış ekipman, kimyasal dökülme veya tehlikeli yakınlaşma gibi ramak kala ve güvensiz durumlar bildirilmelidir. Erken bildirim, tekrarın ve daha ağır sonucun önlenmesine destek olur.\n\n## Bildirimde aktar\nNe oldu, nerede ve ne zaman oldu? Hangi iş veya ekipman vardı? Kimler etkilenmiş olabilir? Tehlike şu anda devam ediyor mu? Gördüğün bilgiyi açıkça aktar; tahminleri gerçek gibi sunma. Önce acil tehlike ve yaralı varsa yardım/alan güvenliği adımlarını uygula.\n\nBildirim suçlama amacı taşımaz; nedenleri anlamak ve önlemleri geliştirmek için kullanılır. İşyerinin resmi kayıt ve bildirim usullerine uy.`, sureDakika: 6 }),
   ] },
-], temelIsgSinavi, 'aktif', 'İçerik, resmi kaynaklı video ve sınavla kapsamlı biçimde yenilendi', temelIsgOnSinavi)
+], temelIsgSinavi, 'eski', 'İçerik, resmi kaynaklı video ve sınavla kapsamlı biçimde yenilendi', temelIsgOnSinavi)
 
 export const egitimSeed: Egitim[] = [
   {
@@ -436,7 +446,7 @@ export const egitimSeed: Egitim[] = [
           },
         ],
         sinavTemel,
-        'aktif',
+        'eski',
         'Video ve sınav eklendi',
         temelIsgOnSinavi,
       ),

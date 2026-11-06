@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Alan } from '@/components/form-bits'
 import { cn } from '@/lib/utils'
-import { kullaniciOner, rastgeleSifreUret, VARSAYILAN_SIFRE } from '@/lib/kullanici-adi'
+import { kullaniciOner, rastgeleSifreUret } from '@/lib/kullanici-adi'
+import { sifreHashle } from '@/lib/sifre'
+import { bildirimGonder } from '@/stores/bildirim-store'
 import { TODAY } from '@/data/dashboard'
 import { personelAd, usePersonelStore } from '@/stores/personeller-store'
 import { useAyarlarStore } from '@/stores/ayarlar-store'
@@ -43,8 +45,8 @@ export function FirmaCalisanEkle({ firmaId, firmaUnvan, kullanici, hesapIzni, on
   // Kullanıcı adı ad/soyaddan türer; elle değiştirilirse o değer kullanılır.
   const [kulManuel, setKulManuel] = useState<string | null>(null)
   const kul = kulManuel ?? kullaniciOner(f.ad, f.soyad)
-  const [sifre, setSifre] = useState(VARSAYILAN_SIFRE)
-  const [sifreTekrar, setSifreTekrar] = useState(VARSAYILAN_SIFRE)
+  const [sifre, setSifre] = useState(() => rastgeleSifreUret())
+  const [sifreTekrar, setSifreTekrar] = useState(sifre)
   const [sifreGoster, setSifreGoster] = useState(true)
 
   const hesaAktif = hesapIzni && hesapAcik
@@ -70,7 +72,7 @@ export function FirmaCalisanEkle({ firmaId, firmaUnvan, kullanici, hesapIzni, on
     setAdim(1)
   }
 
-  const kaydet = () => {
+  const kaydet = async () => {
     const kisi = kisiHatasi()
     if (kisi) {
       setAdim(0)
@@ -97,13 +99,21 @@ export function FirmaCalisanEkle({ firmaId, firmaUnvan, kullanici, hesapIzni, on
     let hesapNot = ''
     if (hesaAktif) {
       try {
-        hesapOlustur(p.id, kul.trim(), 'sifre', sifre)
+        hesapOlustur(p.id, kul.trim(), 'sifre', await sifreHashle(sifre))
         hesapNot = ` · giriş hesabı açıldı (@${kul.trim()})`
       } catch (e) {
         hesapNot = ` · hesap açılamadı: ${(e as Error).message}`
       }
     }
     logEkle({ tarih: new Date().toISOString(), kullanici, islem: 'Çalışan eklendi (firma portalı)', kayit: `${personelAd(p)} · ${firmaUnvan}` })
+    // Firma işlemi İSG uzmanına haber verilerek yapılır; eğitim ataması İSG tarafından yapılır
+    bildirimGonder({
+      hedef: 'osgb',
+      ton: 'amber',
+      baslik: 'Firma yeni çalışan ekledi',
+      detay: `${personelAd(p)} · ${firmaUnvan} · eğitim ataması bekliyor`,
+      to: `/panel/personeller/${p.id}`,
+    })
     toast.success(`${personelAd(p)} eklendi${hesapNot}`)
     onKapat()
   }

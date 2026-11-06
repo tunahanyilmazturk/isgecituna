@@ -11,6 +11,7 @@
  */
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { guvenliDepo } from '@/lib/guvenli-depo'
 import {
   bulguSeed,
   denetimSeed,
@@ -340,7 +341,7 @@ export const useDenetimlerStore = create<DenetimlerState>()(
           ),
         })),
     }),
-    { name: 'isghub-denetimler' },
+    { name: 'isghub-denetimler', storage: guvenliDepo },
   ),
 )
 

@@ -11,9 +11,6 @@ export const kullaniciOner = (ad: string, soyad: string): string =>
     .replace(/ç/g, 'c')
     .replace(/[^a-z0-9.]/g, '')
 
-/** Varsayılan şifre: yönetici değiştirmezse kullanılır, çalışan ilk girişte değiştirir. */
-export const VARSAYILAN_SIFRE = '123456'
-
 /** Rastgele, okunması kolay şifre (harf + rakam). */
 export const rastgeleSifreUret = (uzunluk = 10): string => {
   const karakterler = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'

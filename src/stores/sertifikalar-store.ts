@@ -5,7 +5,9 @@
  */
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { guvenliDepo } from '@/lib/guvenli-depo'
 import { TODAY } from '@/data/dashboard'
+import { surumSuresiDakika } from '@/data/egitimler'
 import {
   basvuruSeed,
   sablonSeed,
@@ -20,6 +22,7 @@ import {
 import { sablonDuzen, tasarimSeed, type TasarimSablon, type Yon } from '@/data/sertifika-tasarim'
 import { usePersonelStore, personelAd } from '@/stores/personeller-store'
 import { useEgitimlerStore } from '@/stores/egitimler-store'
+import { bildirimGonder } from '@/stores/bildirim-store'
 import { useFirmalarStore } from '@/stores/firmalar-store'
 import { useAyarlarStore } from '@/stores/ayarlar-store'
 
@@ -105,7 +108,7 @@ interface SertifikaState {
     giris: { kullanici: string; sablonId: string; duzenlenmeTarihi: string; gecerlilikTarihi?: string; not?: string; katilimDetayi?: import('@/data/sertifikalar').SertifikaKatilimDetayi },
   ) => Sertifika | null
   reddet: (id: string, giris: { kullanici: string; neden: string; aciklama: string }) => void
-  tekrarGonder: (id: string, kullanici: string) => void
+  tekrarGonder: (id: string, kullanici: string, not?: string) => void
   iptalEt: (sertifikaId: string, giris: { kullanici: string; neden: string }) => void
   sablonGuncelle: (id: string, patch: Partial<SertifikaSablon>) => void
   sablonEkle: (s: Omit<SertifikaSablon, 'id'>) => void
@@ -186,6 +189,16 @@ export const useSertifikaStore = create<SertifikaState>()(
         if (yeniler.length) {
           set((s) => ({ basvurular: [...yeniler, ...s.basvurular] }))
           log('Sertifika başvurusu', `${yeniler.length} yeni başvuru otomatik oluşturuldu`)
+          // Başvuru İSG uzmanına, tamamlama firma yetkilisine bildirilir
+          const { personeller } = usePersonelStore.getState()
+          const egitimAdi = (id: string) => useEgitimlerStore.getState().egitimler.find((e) => e.id === id)?.baslik ?? 'Eğitim'
+          yeniler.forEach((y) => {
+            const p = personeller.find((x) => x.id === y.personelId)
+            const a = atamalar.find((x) => x.id === y.atamaId)
+            const ad = p ? personelAd(p) : y.personelId
+            bildirimGonder({ hedef: 'osgb', ton: 'amber', baslik: 'Sertifika başvurusu onayınızı bekliyor', detay: `${ad} · ${egitimAdi(y.egitimId)}`, to: '/panel/sertifika-onay' })
+            if (a) bildirimGonder({ hedef: `firma:${a.firmaId}`, ton: 'emerald', baslik: 'Çalışanınız eğitimi tamamladı', detay: `${ad} · ${egitimAdi(y.egitimId)} — İSG onayı bekleniyor`, to: '/firma/takip' })
+          })
         }
         return yeniler.length
       },
@@ -258,7 +271,7 @@ export const useSertifikaStore = create<SertifikaState>()(
           firmaAd: firmalar.find((f) => f.id === a.firmaId)?.unvan ?? a.firmaId,
           egitimAd: e.baslik,
           egitimSurumNo: sv?.no ?? 0,
-          egitimSure: e.sureDakika,
+          egitimSure: sv ? surumSuresiDakika(sv) : e.sureDakika,
           egitimKonulari,
           katilimDetayi: giris.katilimDetayi,
           egitimKategori: e.kategori,
@@ -301,6 +314,10 @@ export const useSertifikaStore = create<SertifikaState>()(
               : x,
           ),
         }))
+        // Başvuru onaylandı → eğitim kaydı da tamamlanır (katılımcı ve firma aynı durumu görür)
+        useEgitimlerStore.getState().ilerlemeTamamla(b.personelId, b.atamaId)
+        bildirimGonder({ hedef: `katilimci:${b.personelId}`, ton: 'emerald', baslik: 'Sertifikanız hazır', detay: `${crt.sertifikaNo} · ${crt.egitimAd}`, to: `/portal/sertifikalar/${crt.id}` })
+        bildirimGonder({ hedef: `firma:${a.firmaId}`, ton: 'emerald', baslik: 'Çalışanınızın sertifikası onaylandı', detay: `${crt.personelAd} · ${crt.egitimAd}`, to: '/firma/sertifikalar' })
         log('Sertifika onaylandı', `${no} — ${crt.personelAd} / ${crt.egitimAd}`, giris.kullanici)
         return crt
       },
@@ -324,10 +341,20 @@ export const useSertifikaStore = create<SertifikaState>()(
           ),
         }))
         log('Sertifika başvurusu reddedildi', `${id} — ${giris.neden}`, giris.kullanici)
+        const reddedilen = get().basvurular.find((x) => x.id === id)
+        if (reddedilen?.durum === 'Reddedildi') {
+          bildirimGonder({
+            hedef: `katilimci:${reddedilen.personelId}`,
+            ton: 'red',
+            baslik: 'Sertifika başvurunuz reddedildi',
+            detay: `${giris.neden} — düzeltip yeniden gönderebilirsiniz`,
+            to: '/portal/sertifikalar',
+          })
+        }
       },
 
       /** Ret/eksik sonrası eksiklik giderilince tekrar kuyruğa alınır */
-      tekrarGonder: (id, kullanici) =>
+      tekrarGonder: (id, kullanici, not) =>
         set((s) => ({
           basvurular: s.basvurular.map((b) =>
             b.id === id && (b.durum === 'Reddedildi' || b.durum === 'Eksik Koşul')
@@ -336,7 +363,7 @@ export const useSertifikaStore = create<SertifikaState>()(
                   durum: 'İnceleme Bekliyor' as const,
                   retNedeni: undefined,
                   retAciklama: undefined,
-                  olaylar: [...b.olaylar, { tarih: simdi(), kullanici, islem: 'Tekrar incelemeye gönderildi' }],
+                  olaylar: [...b.olaylar, { tarih: simdi(), kullanici, islem: 'Tekrar incelemeye gönderildi', not }],
                 }
               : b,
           ),
@@ -495,6 +522,7 @@ export const useSertifikaStore = create<SertifikaState>()(
     }),
     {
       name: 'isghub-sertifikalar',
+      storage: guvenliDepo,
       // Arka yüz konu listesi yenilendi; aktif sertifikaların arka yüzü güncellenir.
       version: 5,
       migrate: (p) => {

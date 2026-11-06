@@ -1,8 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { guvenliDepo } from '@/lib/guvenli-depo'
 import { TODAY } from '@/data/dashboard'
-import { sifreHashle } from '@/data/ekip'
 import { icerikHash } from '@/lib/toplu'
+import { bildirimGonder } from '@/stores/bildirim-store'
 import {
   atamaSeed,
   kvkkMetinSeed,
@@ -19,6 +20,18 @@ import {
 
 let seq = 0
 const nid = (p: string) => `${p}-${Date.now().toString(36)}${(seq++).toString(36)}`
+/** Yeni atamada çalışanların hesabına bildirim düşer (İSG tarafından atandığı için her zaman görünür) */
+const katilimcilaraBildir = (personelIds: string[], sonTarih: string) =>
+  personelIds.forEach((pid) =>
+    bildirimGonder({
+      hedef: `katilimci:${pid}`,
+      ton: 'amber',
+      baslik: 'Size yeni bir eğitim atandı',
+      detay: `Son tarih ${sonTarih} · Eğitimlerim sayfanızdan başlayabilirsiniz`,
+      to: '/portal/egitimler',
+    }),
+  )
+
 const token = () => `dvt-${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`
 
 /** Toplu aktarma kaydı — personel + opsiyonel hesap tek atomik işlemde oluşur */
@@ -34,8 +47,8 @@ export interface TopluKayit {
   sicilNo?: string
   hesap: boolean
   kullaniciAdi: string
-  /** Açık şifre yalnızca bu çağrıda kullanılır — hash saklanır, açık hâl kalıcılaşmaz */
-  sifre: string
+  /** Şifre özeti (lib/sifre.ts) — çağıran hash'ler; store açık şifre almaz */
+  sifreHash: string
   sifreDegisimZorunlu: boolean
   islemNotu: string
 }
@@ -61,10 +74,10 @@ interface PersonelState {
   personelGuncelle: (id: string, patch: Partial<FirmaPersonel>) => void
   personelDurum: (id: string, durum: PersonelDurum) => void
   firmaDegistir: (id: string, firmaId: string) => void
-  hesapOlustur: (personelId: string, kullaniciAdi: string, mod: 'davet' | 'sifre', sifre?: string) => PortalHesap
+  hesapOlustur: (personelId: string, kullaniciAdi: string, mod: 'davet' | 'sifre', sifreHash?: string) => PortalHesap
   hesapGuncelle: (id: string, patch: Partial<PortalHesap>) => void
   davetYenile: (hesapId: string) => string
-  davetKabul: (tkn: string, sifre: string) => boolean
+  davetKabul: (tkn: string, sifreHash: string) => boolean
   oturumKapat: (hesapId: string, oturumId: string) => void
   atamaEkle: (a: Omit<EgitimAtama, 'id' | 'olaylar' | 'durum'>) => EgitimAtama
   /** Toplu atama: tüm kayıtlar tek set() içinde yazılır; yazılan kayıt sayısını döner. */
@@ -73,9 +86,8 @@ interface PersonelState {
   sonTarihGuncelle: (id: string, tarih: string) => void
   hatirlatmaGonder: (id: string) => void
   /**
-   * Firma yetkilisinin katılımcı eklemesi — aynı atamada zaten olan id'ler atlanır.
-   * Üretimde: atamanın firmaId'si çağıranın üyeliğiyle ve firmaEkleyebilir bayrağıyla
-   * sunucu tarafında doğrulanır.
+   * İSG uzmanının mevcut atamaya katılımcı eklemesi — aynı atamada zaten olan id'ler atlanır.
+   * Firma kullanıcıları bu işlemi yapamaz (firma portalında buton yok).
    */
   atamaKatilimciEkle: (id: string, personelIds: string[], kim: string) => number
   epostaAlinmi: (eposta: string, haricPersonel?: string) => boolean
@@ -85,7 +97,9 @@ interface PersonelState {
    * Satır bazında mükerrer denetimi yapılır; kısmi hata durumunda başarılılar korunur.
    */
   topluOlusturBatch: (kayitlar: TopluKayit[], hariciKullaniciVar?: (k: string) => boolean) => TopluSonuc[]
-  sifreDegistir: (hesapId: string, yeniSifre: string) => void
+  sifreDegistir: (hesapId: string, sifreHash: string) => void
+  /** Yönetici sıfırlaması: geçici şifre atar, ilk girişte değişim zorunlu kılar, açık oturumları kapatır */
+  sifreSifirla: (hesapId: string, sifreHash: string, kim: string) => void
   /** Aktif metin için teyit yoksa true — backend'de de her istekte doğrulanmalıdır */
   kvkkBekliyor: (hesapId: string) => boolean
   kvkkTeyitEt: (hesapId: string) => void
@@ -153,7 +167,7 @@ export const usePersonelStore = create<PersonelState>()(
           ),
         })),
 
-      hesapOlustur: (personelId, kullaniciAdi, mod, sifre) => {
+      hesapOlustur: (personelId, kullaniciAdi, mod, sifreHash) => {
         const personel = get().personeller.find((p) => p.id === personelId)
         if (!personel) throw new Error('Personel bulunamadı')
         if (get().hesaplar.some((h) => h.personelId === personelId && h.durum !== 'Pasif'))
@@ -163,7 +177,8 @@ export const usePersonelStore = create<PersonelState>()(
           personelId,
           kullaniciAdi,
           eposta: personel.eposta,
-          sifreHash: mod === 'sifre' && sifre ? sifreHashle(sifre) : undefined,
+          sifreHash: mod === 'sifre' && sifreHash ? sifreHash : undefined,
+          sifreDegisimTarihi: mod === 'sifre' && sifreHash ? new Date().toISOString() : undefined,
           davetToken: mod === 'davet' ? token() : undefined,
           davetBitis:
             mod === 'davet' ? new Date(Date.now() + 7 * 86400000).toISOString() : undefined,
@@ -201,7 +216,7 @@ export const usePersonelStore = create<PersonelState>()(
       },
 
       /** Davet tek kullanımlık ve sürelidir — kabulde hesap aktifleşir */
-      davetKabul: (tkn, sifre) => {
+      davetKabul: (tkn, sifreHash) => {
         const h = get().hesaplar.find(
           (x) => x.davetToken === tkn && x.durum === 'Davet Bekliyor',
         )
@@ -212,7 +227,8 @@ export const usePersonelStore = create<PersonelState>()(
               ? {
                   ...x,
                   durum: 'Aktif',
-                  sifreHash: sifreHashle(sifre),
+                  sifreHash,
+                  sifreDegisimTarihi: new Date().toISOString(),
                   davetToken: undefined,
                   davetBitis: undefined,
                 }
@@ -238,6 +254,7 @@ export const usePersonelStore = create<PersonelState>()(
           olaylar: [{ tarih: new Date().toISOString(), islem: `Atama oluşturuldu — ${a.personelIds.length} personel` }],
         }
         set((s) => ({ atamalar: [yeni, ...s.atamalar] }))
+        katilimcilaraBildir(yeni.personelIds, yeni.sonTarih)
         return yeni
       },
 
@@ -250,6 +267,7 @@ export const usePersonelStore = create<PersonelState>()(
           olaylar: [{ tarih: new Date().toISOString(), islem: `Atama oluşturuldu — ${a.personelIds.length} personel` }],
         }))
         set((s) => ({ atamalar: [...yeniler, ...s.atamalar] }))
+        yeniler.forEach((y) => katilimcilaraBildir(y.personelIds, y.sonTarih))
         return yeniler.length
       },
 
@@ -370,7 +388,8 @@ export const usePersonelStore = create<PersonelState>()(
               personelId: p.id,
               kullaniciAdi: k.kullaniciAdi,
               eposta: k.eposta ?? '',
-              sifreHash: sifreHashle(k.sifre),
+              sifreHash: k.sifreHash,
+              sifreDegisimTarihi: k.sifreHash ? new Date().toISOString() : undefined,
               sifreDegisimZorunlu: k.sifreDegisimZorunlu,
               durum: 'Aktif',
               oturumlar: [],
@@ -393,14 +412,30 @@ export const usePersonelStore = create<PersonelState>()(
         return sonuclar
       },
 
-      sifreDegistir: (hesapId, yeniSifre) =>
+      sifreDegistir: (hesapId, sifreHash) =>
         set((s) => ({
           hesaplar: s.hesaplar.map((h) =>
             h.id === hesapId
-              ? { ...h, sifreHash: sifreHashle(yeniSifre), sifreDegisimZorunlu: false }
+              ? { ...h, sifreHash, sifreDegisimZorunlu: false, sifreDegisimTarihi: new Date().toISOString() }
               : h,
           ),
         })),
+
+      sifreSifirla: (hesapId, sifreHash, kim) => {
+        const h = get().hesaplar.find((x) => x.id === hesapId)
+        if (!h) return
+        const simdi = new Date().toISOString()
+        set((s) => ({
+          hesaplar: s.hesaplar.map((x) =>
+            x.id === hesapId
+              ? { ...x, sifreHash, sifreDegisimZorunlu: true, sifreDegisimTarihi: simdi, oturumlar: [] }
+              : x,
+          ),
+          personeller: s.personeller.map((p) =>
+            p.id === h.personelId ? gecmisEkle(p, `Katılımcı şifresi sıfırlandı (${kim})`) : p,
+          ),
+        }))
+      },
 
       kvkkBekliyor: (hesapId) => {
         const aktif = get().kvkkMetinler.find((m) => m.aktif)
@@ -435,6 +470,7 @@ export const usePersonelStore = create<PersonelState>()(
     }),
     {
       name: 'isghub-personeller',
+      storage: guvenliDepo,
       version: 1,
       migrate: (state) => {
         // v0 → v1: firmaId 'FRM-00X' → firma.id 'FR-0X' eşlemesi

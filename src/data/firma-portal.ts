@@ -1,5 +1,5 @@
 import { TODAY } from '@/data/dashboard'
-import { sifreHashle } from '@/data/ekip'
+import { DEMO_SIFRE_OZETI } from '@/data/sifre-seed'
 
 /*
  * Firma yetkilisi hesapları — müşteri firmanın yönetici/İK kullanıcıları.
@@ -119,7 +119,7 @@ export const firmaYetkiliSeed: FirmaYetkili[] = [
     telefon: '0532 445 90 12',
     gorev: 'İnsan Kaynakları Müdürü',
     kullaniciAdi: 'okaraca',
-    sifreHash: sifreHashle('123456'), // demo: okaraca / 123456
+    sifreHash: DEMO_SIFRE_OZETI, // demo: okaraca / 123456
     durum: 'Aktif',
     sonGiris: '2026-11-03T14:20:00',
     oturumlar: [
@@ -141,7 +141,7 @@ export const firmaYetkiliSeed: FirmaYetkili[] = [
     telefon: '0542 610 34 78',
     gorev: 'Firma Sahibi',
     kullaniciAdi: 'byildiz',
-    sifreHash: sifreHashle('123456'), // demo: byildiz / 123456
+    sifreHash: DEMO_SIFRE_OZETI, // demo: byildiz / 123456
     durum: 'Aktif',
     sonGiris: '2026-11-01T09:05:00',
     oturumlar: [

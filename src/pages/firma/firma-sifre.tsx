@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Alan } from '@/components/form-bits'
 import { useAuthStore } from '@/stores/auth-store'
 import { useFirmaPortalStore } from '@/stores/firma-portal-store'
+import { sifreHashle } from '@/lib/sifre'
 import { useYetkili } from './bits'
 
 /** İlk giriş / sıfırlama sonrası zorunlu şifre belirleme — geçici şifre kalıcı parola değildir */
@@ -18,11 +19,11 @@ export default function FirmaSifrePage() {
   const [s1, setS1] = useState('')
   const [s2, setS2] = useState('')
 
-  const kaydet = () => {
+  const kaydet = async () => {
     if (!yetkili) return
     if (s1.length < 6) return toast.error('Şifre en az 6 karakter olmalı')
     if (s1 !== s2) return toast.error('Şifreler eşleşmiyor')
-    sifreDegistir(yetkili.id, s1)
+    sifreDegistir(yetkili.id, await sifreHashle(s1))
     toast.success('Şifreniz belirlendi — firma portalına yönlendiriliyorsunuz')
     navigate('/firma')
   }

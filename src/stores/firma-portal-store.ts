@@ -6,8 +6,8 @@
  */
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { guvenliDepo } from '@/lib/guvenli-depo'
 import { TODAY } from '@/data/dashboard'
-import { sifreHashle } from '@/data/ekip'
 import { firmaYetkiliSeed, type FirmaYetkili, type YetkiliDurum } from '@/data/firma-portal'
 import { useAyarlarStore } from '@/stores/ayarlar-store'
 import { usePersonelStore } from '@/stores/personeller-store'
@@ -30,9 +30,10 @@ interface FirmaPortalState {
   yetkiliGuncelle: (id: string, patch: Partial<FirmaYetkili>, islem?: string, kullanici?: string) => void
   yetkiliDurum: (id: string, durum: YetkiliDurum, kullanici?: string) => void
   davetYenile: (id: string, kullanici?: string) => string
-  davetKabul: (tkn: string, sifre: string) => boolean
+  /** Şifre özetleri (lib/sifre.ts) çağıran tarafından üretilir; store açık şifre almaz */
+  davetKabul: (tkn: string, sifreHash: string) => boolean
   sifreSifirla: (id: string, kullanici?: string) => void
-  sifreDegistir: (id: string, yeniSifre: string) => void
+  sifreDegistir: (id: string, sifreHash: string) => void
   oturumKapat: (id: string, oturumId: string, kullanici?: string) => void
   izinKaydet: (id: string, izinler: string[], kullanici?: string) => void
   kullaniciAlinmi: (kullaniciAdi: string) => boolean
@@ -97,7 +98,7 @@ export const useFirmaPortalStore = create<FirmaPortalState>()(
         return t
       },
 
-      davetKabul: (tkn, sifre) => {
+      davetKabul: (tkn, sifreHash) => {
         const y = get().yetkililer.find(
           (x) => x.davetToken === tkn && x.durum === 'Davet Bekliyor',
         )
@@ -106,7 +107,7 @@ export const useFirmaPortalStore = create<FirmaPortalState>()(
           yetkililer: s.yetkililer.map((x) =>
             x.id === y.id
               ? gecmis(
-                  { ...x, durum: 'Aktif', sifreHash: sifreHashle(sifre), davetToken: undefined, davetBitis: undefined },
+                  { ...x, durum: 'Aktif', sifreHash, davetToken: undefined, davetBitis: undefined },
                   'Davet kabul edildi — şifre belirlendi',
                 )
               : x,
@@ -129,11 +130,11 @@ export const useFirmaPortalStore = create<FirmaPortalState>()(
           ),
         })),
 
-      sifreDegistir: (id, yeniSifre) =>
+      sifreDegistir: (id, sifreHash) =>
         set((s) => ({
           yetkililer: s.yetkililer.map((y) =>
             y.id === id
-              ? gecmis({ ...y, sifreHash: sifreHashle(yeniSifre), sifreDegisimZorunlu: false }, 'Şifre değiştirildi')
+              ? gecmis({ ...y, sifreHash, sifreDegisimZorunlu: false }, 'Şifre değiştirildi')
               : y,
           ),
         })),
@@ -163,7 +164,7 @@ export const useFirmaPortalStore = create<FirmaPortalState>()(
         get().yetkililer.some((y) => y.kullaniciAdi === kullaniciAdi) ||
         usePersonelStore.getState().kullaniciAlinmi(kullaniciAdi),
     }),
-    { name: 'isghub-firma-portal' },
+    { name: 'isghub-firma-portal', storage: guvenliDepo },
   ),
 )
 

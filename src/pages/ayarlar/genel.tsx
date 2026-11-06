@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/lib/tema-context'
 import { CheckIcon, InfoIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'

@@ -1,8 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { adSoyad, sifreHashle } from '@/data/ekip'
+import { guvenliDepo } from '@/lib/guvenli-depo'
+import { adSoyad } from '@/data/ekip'
 import { DEMO_FIRMA_ID, DEMO_KATILIMCI_KULLANICI, DEMO_YONETIM_KULLANICI, DEMO_FIRMA_KULLANICI } from '@/data/demo'
+import { DEMO_SIFRE_OZETI } from '@/data/sifre-seed'
 import { clearDemoBackup, ensureDemoData, hasDemoBackup, restoreDemoStores, snapshotDemoStores } from '@/lib/demo-session'
+import { sifreDogrula, sifreHashle, sifreYukseltilmeli } from '@/lib/sifre'
 import { useEkipStore } from '@/stores/ekip-store'
 import { usePersonelStore } from '@/stores/personeller-store'
 import { useFirmaPortalStore } from '@/stores/firma-portal-store'
@@ -26,9 +29,10 @@ export interface User {
 
 export type DemoPortal = 'panel' | 'firma' | 'portal'
 
+/** Demo yönetici hesabı — şifre yalnızca özet olarak tutulur (bkz. data/sifre-seed.ts) */
 const DEMO_USER = {
   username: 'yilmazturk',
-  password: '123456',
+  sifreHash: DEMO_SIFRE_OZETI,
   name: 'Tunahan Yılmaztürk',
   unvan: 'İSG Uzmanı',
   eposta: 'tunahan@isghub.com',
@@ -45,7 +49,7 @@ const toInitials = (name: string) =>
 
 interface AuthState {
   user: User | null
-  login: (username: string, password: string) => boolean
+  login: (username: string, password: string) => Promise<boolean>
   /**
    * Demo oturumu başlatır. Demo hesapların şifresi yoktur — yalnızca bu yol açabilir.
    * İstemci prototipi: gerçek verilerin anlık görüntüsü alınır, demo kayıtları
@@ -58,32 +62,39 @@ interface AuthState {
 }
 
 // Kullanıcı adı + şifre, mevcut store'lardaki herhangi bir hesapla eşleşiyor mu (oturum açmadan).
-const kimlikVarMi = (username: string, password: string): boolean => {
-  if (username === DEMO_USER.username && password === DEMO_USER.password) return true
-  const h = sifreHashle(password)
-  return (
-    useEkipStore.getState().hesaplar.some((x) => x.kullaniciAdi === username && x.durum === 'Aktif' && x.sifreHash === h) ||
-    useFirmaPortalStore.getState().yetkililer.some((y) => y.kullaniciAdi === username && y.durum === 'Aktif' && y.sifreHash === h) ||
-    usePersonelStore.getState().hesaplar.some((x) => x.kullaniciAdi === username && x.durum === 'Aktif' && x.sifreHash === h)
-  )
+const kimlikVarMi = async (username: string, password: string): Promise<boolean> => {
+  if (username === DEMO_USER.username && (await sifreDogrula(password, DEMO_USER.sifreHash))) return true
+  const adaylar = [
+    ...useEkipStore.getState().hesaplar.filter((x) => x.kullaniciAdi === username && x.durum === 'Aktif'),
+    ...useFirmaPortalStore.getState().yetkililer.filter((y) => y.kullaniciAdi === username && y.durum === 'Aktif'),
+    ...usePersonelStore.getState().hesaplar.filter((x) => x.kullaniciAdi === username && x.durum === 'Aktif'),
+  ]
+  for (const aday of adaylar) {
+    if (await sifreDogrula(password, aday.sifreHash)) return true
+  }
+  return false
 }
+
+/** Eski biçim özet başarılı girişte yeni biçime (PBKDF2) yükseltilir; güncel kayıt dokunulmaz. */
+const ozetYukseltme = async (kayitli: string | undefined, password: string): Promise<{ sifreHash?: string }> =>
+  sifreYukseltilmeli(kayitli) ? { sifreHash: await sifreHashle(password) } : {}
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      login: (username, password) => {
+      login: async (username, password) => {
         // Yarım kalmış demo yedeği varsa: hesap demo sırasında oluşturulmuşsa demo değişiklikleri kalıcı olur,
         // aksi halde gerçek veri geri yüklenir (oturum reload ile sıfırlanır).
         if (hasDemoBackup()) {
-          if (!kimlikVarMi(username, password)) {
+          if (!(await kimlikVarMi(username, password))) {
             restoreDemoStores()
             if (typeof window !== 'undefined') window.location.reload()
             return false
           }
           clearDemoBackup()
         }
-        if (username === DEMO_USER.username && password === DEMO_USER.password) {
+        if (username === DEMO_USER.username && (await sifreDogrula(password, DEMO_USER.sifreHash))) {
           set({
             user: {
               username: DEMO_USER.username,
@@ -99,11 +110,8 @@ export const useAuthStore = create<AuthState>()(
         // Ekip modülündeki kullanıcı hesapları — personel bağı opsiyonel
         const hesap = useEkipStore
           .getState()
-          .hesaplar.find(
-            (h) =>
-              h.kullaniciAdi === username && h.durum === 'Aktif' && h.sifreHash,
-          )
-        if (hesap && hesap.sifreHash === sifreHashle(password)) {
+          .hesaplar.find((h) => h.kullaniciAdi === username && h.durum === 'Aktif' && h.sifreHash)
+        if (hesap && (await sifreDogrula(password, hesap.sifreHash))) {
           const personel = useEkipStore.getState().uyeler.find((u) => u.id === hesap.personelId)
           const name = personel ? adSoyad(personel) : (hesap.ad ?? hesap.kullaniciAdi)
           set({
@@ -119,6 +127,7 @@ export const useAuthStore = create<AuthState>()(
           useEkipStore.getState().hesapGuncelleById(hesap.id, {
             sonGiris: new Date().toISOString(),
             sonAktiflik: new Date().toISOString(),
+            ...(await ozetYukseltme(hesap.sifreHash, password)),
           })
           return true
         }
@@ -126,7 +135,7 @@ export const useAuthStore = create<AuthState>()(
         const fy = useFirmaPortalStore
           .getState()
           .yetkililer.find((y) => y.kullaniciAdi === username && y.durum === 'Aktif' && y.sifreHash)
-        if (fy && fy.sifreHash === sifreHashle(password)) {
+        if (fy && (await sifreDogrula(password, fy.sifreHash))) {
           const name = `${fy.ad} ${fy.soyad}`
           set({
             user: {
@@ -147,6 +156,7 @@ export const useAuthStore = create<AuthState>()(
               ...fy.oturumlar,
               { id: `OT-${Date.now().toString(36)}`, cihaz: 'Tarayıcı', ip: '—', tarih: new Date().toISOString() },
             ],
+            ...(await ozetYukseltme(fy.sifreHash, password)),
           })
           return true
         }
@@ -154,7 +164,7 @@ export const useAuthStore = create<AuthState>()(
         const ph = usePersonelStore
           .getState()
           .hesaplar.find((h) => h.kullaniciAdi === username && h.durum === 'Aktif' && h.sifreHash)
-        if (ph && ph.sifreHash === sifreHashle(password)) {
+        if (ph && (await sifreDogrula(password, ph.sifreHash))) {
           const personel = usePersonelStore.getState().personeller.find((p) => p.id === ph.personelId)
           const name = personel ? `${personel.ad} ${personel.soyad}` : ph.kullaniciAdi
           set({
@@ -170,7 +180,6 @@ export const useAuthStore = create<AuthState>()(
             },
           })
           usePersonelStore.getState().hesapGuncelle(ph.id, {
-            sonGiris: new Date().toISOString(),
             oturumlar: [
               ...ph.oturumlar,
               {
@@ -180,6 +189,7 @@ export const useAuthStore = create<AuthState>()(
                 tarih: new Date().toISOString(),
               },
             ],
+            ...(await ozetYukseltme(ph.sifreHash, password)),
           })
           return true
         }
@@ -280,6 +290,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'isghub-auth',
+      storage: guvenliDepo,
       merge: (persisted, current) => {
         const p = persisted as Partial<AuthState> | undefined
         return {

@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils'
 import { personelAd, usePersonelStore } from '@/stores/personeller-store'
 import { useFirmalarStore } from '@/stores/firmalar-store'
 import { useEgitimlerStore, aktifSurum } from '@/stores/egitimler-store'
-import { surumIstatistik } from '@/data/egitimler'
+import { egitimSuresiDakika, surumIstatistik } from '@/data/egitimler'
 import { TODAY } from '@/data/dashboard'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -99,7 +99,6 @@ export default function EgitimAtamaYeniPage() {
   const [hatirlatmaMetin, setHatirlatmaMetin] = useState('3')
   const hatirlatmaGun = Math.max(0, Math.min(30, Number(hatirlatmaMetin) || 0))
   const [zorunlu, setZorunlu] = useState(true)
-  const [firmaEkleyebilir, setFirmaEkleyebilir] = useState(false)
 
   const yayindakiler = useMemo(() => egitimler.filter((e) => e.durum === 'Yayında'), [egitimler])
   const egitimlerFiltreli = yayindakiler.filter((e) => [e.baslik, e.aciklama, e.kategori].join(' ').toLocaleLowerCase('tr').includes(egitimAra.trim().toLocaleLowerCase('tr')))
@@ -116,16 +115,25 @@ export default function EgitimAtamaYeniPage() {
     const filtreUygun = personelFiltresi === 'tumu' || (personelFiltresi === 'yeni' && son7GundeOlusturuldu(p.olusturma)) || (personelFiltresi === 'hesapli' && hesapli) || (personelFiltresi === 'hesapsiz' && !hesapli) || (personelFiltresi === 'atanmis' && atanmis) || (personelFiltresi === 'atanmamis' && !atanmis)
     return aramaUygun && filtreUygun
   })
+  // Aktif hesabı olmayan çalışan katılımcı olamaz; atama yapılmaz ve sayısı uyarıda gösterilir
+  const hesapVar = (pid: string) => hesaplar.some((h) => h.personelId === pid && h.durum === 'Aktif')
   const kursDagilimlari = seciliEgitimler.map((egitim) => {
     const secilenler = egitimKatilimcilari[egitim.id] ?? personelIds
     const dahaOnceAtali = (pid: string) => atamalar.some((a) => a.egitimId === egitim.id && a.surumId === egitim.aktifSurumId && a.durum !== 'İptal' && a.personelIds.includes(pid))
     const dagilim = firmaIds.map((firmaId) => ({
       firmaId,
       firma: firmalar.find((f) => f.id === firmaId),
-      kisiler: secilenler.filter((pid) => personeller.find((p) => p.id === pid)?.firmaId === firmaId && !dahaOnceAtali(pid)),
+      kisiler: secilenler.filter((pid) => personeller.find((p) => p.id === pid)?.firmaId === firmaId && !dahaOnceAtali(pid) && hesapVar(pid)),
     })).filter((x) => x.kisiler.length > 0)
-    return { egitim, dagilim, tekrar: secilenler.filter(dahaOnceAtali).length, katilim: dagilim.reduce((n, f) => n + f.kisiler.length, 0) }
+    return {
+      egitim,
+      dagilim,
+      tekrar: secilenler.filter(dahaOnceAtali).length,
+      hesapsiz: secilenler.filter((pid) => !hesapVar(pid) && !dahaOnceAtali(pid)).length,
+      katilim: dagilim.reduce((n, f) => n + f.kisiler.length, 0),
+    }
   })
+  const hesapsizSayisi = kursDagilimlari.reduce((n, x) => n + x.hesapsiz, 0)
   const firmaKaydiSayisi = kursDagilimlari.reduce((n, x) => n + x.dagilim.length, 0)
   const katilimciSayisi = kursDagilimlari.reduce((n, x) => n + x.katilim, 0)
   const atlananTekrar = kursDagilimlari.reduce((n, x) => n + x.tekrar, 0)
@@ -187,7 +195,6 @@ export default function EgitimAtamaYeniPage() {
       sonTarih,
       zorunlu,
       hatirlatmaGun,
-      firmaEkleyebilir,
       olusturan,
     })))
     const kayit = topluAtamaEkle(kayitlar)
@@ -236,7 +243,7 @@ export default function EgitimAtamaYeniPage() {
                 const ist = surumIstatistik(sv)
                 return <button key={e.id} type="button" aria-pressed={secili} onClick={() => egitimSeciminiDegistir(e.id)} className={cn('flex items-center gap-3 rounded-xl border p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500', secili ? 'border-amber-500/60 bg-amber-500/5 ring-1 ring-amber-500/25' : 'hover:border-amber-500/35')}>
                   <span className={cn('flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br text-white', e.kapakTon)}>{e.kapakGorsel ? <img src={e.kapakGorsel} alt="" className="size-full object-cover" /> : <GraduationCapIcon className="size-4" />}</span>
-                  <span className="min-w-0 flex-1"><span className="block truncate text-xs leading-5 font-semibold">{e.baslik}</span><span className="block truncate text-[11px] text-muted-foreground">{e.aciklama}</span><span className="mt-0.5 block text-[10px] text-muted-foreground">v{sv.no} · {ist.bolumSayisi} bölüm · {ist.soruSayisi} soru · {e.sureDakika} dk</span></span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-xs leading-5 font-semibold">{e.baslik}</span><span className="block truncate text-[11px] text-muted-foreground">{e.aciklama}</span><span className="mt-0.5 block text-[10px] text-muted-foreground">v{sv.no} · {ist.bolumSayisi} bölüm · {ist.soruSayisi} soru · {egitimSuresiDakika(e)} dk</span></span>
                   <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-full border', secili ? 'border-amber-500 bg-amber-500 text-zinc-950' : 'border-border')}>{secili && <CheckCircle2Icon className="size-3.5" />}</span>
                 </button>
               })}{egitimlerFiltreli.length === 0 && <p className="rounded-xl border border-dashed p-4 text-center text-xs text-muted-foreground sm:col-span-2">Eşleşen yayınlanmış eğitim bulunamadı.</p>}</div>
@@ -284,7 +291,7 @@ export default function EgitimAtamaYeniPage() {
             </>}
 
             {adim === 3 && <div className="max-w-3xl space-y-4"><section><h3 className="text-xs font-semibold">Ortak takvim</h3><p className="mt-0.5 text-[10px] text-muted-foreground">Bu tarihler seçtiğiniz tüm eğitim ve firma atamalarında kullanılır.</p><div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="space-y-1.5"><span className="text-xs font-medium">Atama tarihi</span><input type="date" value={atamaTarihi} onChange={(e) => setAtamaTarihi(e.target.value)} className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring dark:bg-input/30" /><span className="block text-[10px] text-muted-foreground">Eğitimlerin çalışan listesinde görüneceği gün.</span></label><label className="space-y-1.5"><span className="text-xs font-medium">Son tamamlama tarihi</span><input type="date" min={atamaTarihi} value={sonTarih} onChange={(e) => setSonTarih(e.target.value)} className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring dark:bg-input/30" /><span className="block text-[10px] text-muted-foreground">Sonrasında tamamlanmayan katılımlar gecikir.</span></label></div></section>
-              <section className="border-t pt-4"><h3 className="text-xs font-semibold">Tamamlama kuralları</h3><div className="mt-2 grid gap-2 sm:grid-cols-2"><label className={cn('flex cursor-pointer items-start gap-3 rounded-xl border p-3', zorunlu ? 'border-amber-500/40 bg-amber-500/5' : 'bg-card')}><Checkbox checked={zorunlu} onCheckedChange={(v) => setZorunlu(!!v)} className="mt-0.5" /><span><span className="block text-xs font-medium">Zorunlu eğitim</span><span className="mt-1 block text-[10px] leading-4 text-muted-foreground">Seçilen tüm eğitimleri zorunlu olarak işaretle.</span></span></label><label className={cn('flex cursor-pointer items-start gap-3 rounded-xl border p-3', firmaEkleyebilir ? 'border-amber-500/40 bg-amber-500/5' : 'bg-card')}><Checkbox checked={firmaEkleyebilir} onCheckedChange={(v) => setFirmaEkleyebilir(!!v)} className="mt-0.5" /><span><span className="block text-xs font-medium">Firma çalışan ekleyebilsin</span><span className="mt-1 block text-[10px] leading-4 text-muted-foreground">Firma yetkilisi kendi çalışanlarını atamaya dahil edebilir.</span></span></label></div><div className="mt-3 max-w-xs"><label className="space-y-1.5"><span className="text-xs font-medium">Son tarihten önce hatırlatma</span><span className="flex items-center gap-2"><input type="number" min={0} max={30} value={hatirlatmaMetin} onBlur={() => setHatirlatmaMetin(String(hatirlatmaGun))} onChange={(e) => setHatirlatmaMetin(e.target.value)} className="h-9 w-24 rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring dark:bg-input/30" /><span className="text-xs text-muted-foreground">gün önce · 0 = kapalı</span></span></label></div></section>
+              <section className="border-t pt-4"><h3 className="text-xs font-semibold">Tamamlama kuralları</h3><div className="mt-2 grid gap-2 sm:grid-cols-2"><label className={cn('flex cursor-pointer items-start gap-3 rounded-xl border p-3', zorunlu ? 'border-amber-500/40 bg-amber-500/5' : 'bg-card')}><Checkbox checked={zorunlu} onCheckedChange={(v) => setZorunlu(!!v)} className="mt-0.5" /><span><span className="block text-xs font-medium">Zorunlu eğitim</span><span className="mt-1 block text-[10px] leading-4 text-muted-foreground">Seçilen tüm eğitimleri zorunlu olarak işaretle.</span></span></label></div><div className="mt-3 max-w-xs"><label className="space-y-1.5"><span className="text-xs font-medium">Son tarihten önce hatırlatma</span><span className="flex items-center gap-2"><input type="number" min={0} max={30} value={hatirlatmaMetin} onBlur={() => setHatirlatmaMetin(String(hatirlatmaGun))} onChange={(e) => setHatirlatmaMetin(e.target.value)} className="h-9 w-24 rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring dark:bg-input/30" /><span className="text-xs text-muted-foreground">gün önce · 0 = kapalı</span></span></label></div></section>
             </div>}
 
             {adim === 4 && <>
@@ -293,7 +300,7 @@ export default function EgitimAtamaYeniPage() {
                 <div className="flex items-center gap-3 border-b px-3.5 py-2.5"><CalendarIcon className="size-4 shrink-0 text-amber-600 dark:text-amber-400" /><div className="min-w-0 flex-1"><p className="text-xs font-medium">{atamaTarihi} → {sonTarih}</p><p className="text-[10px] text-muted-foreground">{gunDurumu(sonTarih)} · {zorunlu ? 'Zorunlu' : 'İsteğe bağlı'} · Hatırlatma {hatirlatmaGun > 0 ? `${hatirlatmaGun} gün önce` : 'kapalı'}</p></div><Sayfalama sayfa={ozetSayfasi.toplam > 0 ? Math.min(sayfalar.ozet, ozetSayfasi.toplam - 1) : 0} toplam={ozetSayfasi.toplam} onChange={sayfaDegistir('ozet')} /></div>
                 <div className="divide-y">{ozetSayfasi.ogeler.map(({ egitim: e, dagilim, tekrar, katilim }) => <div key={e.id} className="flex items-center gap-2.5 px-3.5 py-2"><span className={cn('flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-md bg-gradient-to-br text-white', e.kapakTon)}>{e.kapakGorsel ? <img src={e.kapakGorsel} alt="" className="size-full object-cover" /> : <GraduationCapIcon className="size-3.5" />}</span><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{e.baslik}</p><p className="text-[10px] text-muted-foreground">v{aktifSurum(e).no} · {katilim} yeni katılım{tekrar ? ` · ${tekrar} atlanacak` : ''}</p><div className="mt-1 flex flex-wrap gap-1">{dagilim.map((d) => <span key={d.firmaId} className="rounded-md bg-muted px-1.5 py-0.5 text-[10px]">{d.firma?.unvan ?? d.firmaId} · {d.kisiler.length} kişi</span>)}</div></div>{katilim > 0 ? <CheckCircle2Icon className="size-4 shrink-0 text-emerald-500" /> : <span className="shrink-0 text-[10px] font-medium text-amber-700 dark:text-amber-400">Yeni kayıt yok</span>}</div>)}{kursDagilimlari.length === 0 && <p className="p-4 text-center text-xs text-muted-foreground">Eğitim seçilmedi.</p>}</div>
               </div>
-              <p className="text-[10px] text-muted-foreground">Firma çalışan eklemesi: {firmaEkleyebilir ? 'Açık' : 'Kapalı'} · Atama tarihleri tüm seçili eğitimlerde aynıdır.</p>
+              <p className="text-[10px] text-muted-foreground">{hesapsizSayisi > 0 && <span className="text-amber-700 dark:text-amber-400">{hesapsizSayisi} çalışanın aktif hesabı olmadığı için atanmadı. </span>}Atamaları yalnızca İSG uzmanı yapar · Atama tarihleri tüm seçili eğitimlerde aynıdır.</p>
             </>}
           </div>
 

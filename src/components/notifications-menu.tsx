@@ -21,10 +21,13 @@ import { useEkipStore } from '@/stores/ekip-store'
 import { useFirmalarStore } from '@/stores/firmalar-store'
 import { useDenetimlerStore } from '@/stores/denetimler-store'
 import { useRiskStore } from '@/stores/risk-store'
+import { useBildirimStore } from '@/stores/bildirim-store'
+import { bildirimGorunumu } from '@/lib/bildirim-view'
 
 const tones = {
   red: 'bg-red-500/10 text-red-600 dark:text-red-400',
   amber: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+  emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
   sky: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
 } as const
 
@@ -39,6 +42,16 @@ export function NotificationsMenu() {
   const denetimler = useDenetimlerStore((s) => s.denetimler)
   const bulgular = useDenetimlerStore((s) => s.bulgular)
   const aksiyonlar = useRiskStore((s) => s.aksiyonlar)
+  const uygulamaBildirimleri = useBildirimStore((s) => s.bildirimler)
+
+  // İSG uzmanına giden uygulama bildirimleri (firma işlemleri, başvurular, atamalar)
+  const osgbBildirimleri = useMemo(
+    () =>
+      uygulamaBildirimleri
+        .filter((b) => b.hedef === 'osgb')
+        .map((b) => ({ ...bildirimGorunumu(b), tone: b.ton })),
+    [uygulamaBildirimleri],
+  )
 
   // Denetim kaynaklı bildirimler — gerçek kayıtlardan
   const denetimBildirimler = useMemo(
@@ -207,7 +220,8 @@ export function NotificationsMenu() {
     [firmalar, katip, uyeler, hesaplar, denetimBildirimler],
   )
 
-  const okunmamis = okundu ? 0 : bildirimler.length
+  const tumBildirimler = [...osgbBildirimleri, ...bildirimler]
+  const okunmamis = okundu ? 0 : tumBildirimler.length
 
   return (
     <div className="relative">
@@ -240,13 +254,13 @@ export function NotificationsMenu() {
                 </button>
               )}
             </div>
-            {bildirimler.length - okunmamis === bildirimler.length ? (
+            {tumBildirimler.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-muted-foreground">
                 Yeni bildirim yok — her şey yolunda.
               </p>
             ) : (
               <ul className="max-h-80 overflow-y-auto p-1.5">
-                {bildirimler.map((b, i) => (
+                {tumBildirimler.map((b, i) => (
                   <li key={i}>
                     <button
                       type="button"

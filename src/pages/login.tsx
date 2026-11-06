@@ -117,7 +117,7 @@ export default function LoginPage() {
     setLoading(true)
     // Kısa bekleme: yükleme durumunun algılanabilir olması için (prototip)
     await new Promise((r) => setTimeout(r, 450))
-    const ok = login(username.trim(), password)
+    const ok = await login(username.trim(), password)
     setLoading(false)
     if (!ok) {
       setHata('Kullanıcı adı veya şifre hatalı. Bilgilerinizi kontrol edip tekrar deneyin.')

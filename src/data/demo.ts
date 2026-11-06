@@ -6,6 +6,9 @@
  * birlikte kaybolur. Gerçek (seed) kayıtlarla aynı şemayı kullanır ama
  * hiçbir gerçek müşteri verisi içermez.
  *
+ * Tarihler TODAY'e göre göreli tutulur (gun / saat yardımcıları). Böylece
+ * demo verisi, TODAY güncellendiğinde kendiliğinden güncel kalır.
+ *
  * Demo hesapların sifreHash'i YOK — normal kimlik girişi bu hesaplara
  * kapalıdır (login() sifreHash olmayan hesabı atlar); yalnızca
  * auth-store.demoLogin() oturum açabilir. İstemciye gömülü demo şifresi yok.
@@ -20,6 +23,22 @@ import type { Firma } from '@/data/firmalar'
 import type { FirmaYetkili } from '@/data/firma-portal'
 import type { KatipKayit } from '@/data/isgkatip'
 import type { Sertifika, SertifikaBasvuru } from '@/data/sertifikalar'
+
+/** TODAY'e n gün ekler (negatif = geçmiş). Sonuç YYYY-MM-DD. */
+const gun = (n: number): string => {
+  const d = new Date(`${TODAY}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+
+/** TODAY'e n gün ekler ve verilen saati birleştirir (YYYY-MM-DDTHH:MM:SS). */
+const saat = (n: number, hhmm: string): string => `${gun(n)}T${hhmm}:00`
+
+/** Demo firma kurulum tarihi — tüm kurulum kayıtlarının ortak başlangıcı */
+const KURULUM = gun(-300)
+
+/** Demo veri sürümü — TODAY veya demo içeriği değişince tarayıcıdaki eski demo kayıtlarını yeniler */
+export const DEMO_SURUM = `${TODAY}-v2`
 
 export const DEMO_FIRMA_ID = 'FR-DEMO'
 export const DEMO_YONETIM_KULLANICI = 'demo-yonetim'
@@ -66,12 +85,12 @@ export const demoFirma: Firma = {
   uzmanSinifi: 'B',
   hekim: 'Dr. Selin Aydemir',
   dsp: 'Hemşire Kaan Ünal',
-  hizmetBaslangic: '2026-01-15',
-  hizmetBitis: '2027-01-14',
+  hizmetBaslangic: KURULUM,
+  hizmetBitis: gun(65),
   notlar: 'Demo veri seti — gerçek müşteri kaydı değildir.',
   ekler: [],
   durum: 'Aktif',
-  islemGecmisi: [{ tarih: TODAY, islem: 'Demo firma kaydı oluşturuldu' }],
+  islemGecmisi: [{ tarih: KURULUM, islem: 'Demo firma kaydı oluşturuldu' }],
 }
 
 export const demoKatip: KatipKayit = {
@@ -81,16 +100,16 @@ export const demoKatip: KatipKayit = {
   uzmanSinifi: 'B',
   hekim: 'Dr. Selin Aydemir',
   dsp: 'Hemşire Kaan Ünal',
-  gorevBaslangic: '2026-01-15',
-  gorevBitis: '2027-01-14',
+  gorevBaslangic: KURULUM,
+  gorevBitis: gun(65),
   sozlesmeNo: 'KT-2026-DEMO',
   sozlesmeTuru: 'OSGB Hizmet Sözleşmesi',
-  sozlesmeBaslangic: '2026-01-15',
-  sozlesmeBitis: '2027-01-14',
+  sozlesmeBaslangic: KURULUM,
+  sozlesmeBitis: gun(65),
   belgeler: [],
   aciklama: 'Demo sözleşme kaydı — gerçek müşteri verisi değildir.',
   durum: 'Aktif',
-  zamanCizgisi: [{ tarih: '2026-01-15', islem: 'Demo sözleşme oluşturuldu' }],
+  zamanCizgisi: [{ tarih: KURULUM, islem: 'Demo sözleşme oluşturuldu' }],
 }
 
 /* ------------------------------- Firma portalı ------------------------------ */
@@ -107,8 +126,8 @@ export const demoYetkili: FirmaYetkili = {
   durum: 'Aktif',
   oturumlar: [],
   izinler: ['*'],
-  olusturma: '2026-01-15',
-  islemGecmisi: [{ tarih: '2026-01-15', islem: 'Demo yetkili hesabı oluşturuldu' }],
+  olusturma: KURULUM,
+  islemGecmisi: [{ tarih: KURULUM, islem: 'Demo yetkili hesabı oluşturuldu' }],
 }
 
 /* ------------------------------- Çalışanlar --------------------------------- */
@@ -124,9 +143,9 @@ const demoPersonel = (id: string, ad: string, soyad: string, gorev: string, sici
   gorev,
   sicilNo: sicil,
   durum: 'Aktif',
-  firmaGecmisi: [{ firmaId: DEMO_FIRMA_ID, baslangic: '2026-01-15' }],
-  olusturma: '2026-01-15',
-  islemGecmisi: [{ tarih: '2026-01-15', islem: 'Demo personel kaydı oluşturuldu' }],
+  firmaGecmisi: [{ firmaId: DEMO_FIRMA_ID, baslangic: KURULUM }],
+  olusturma: KURULUM,
+  islemGecmisi: [{ tarih: KURULUM, islem: 'Demo personel kaydı oluşturuldu' }],
 })
 
 export const demoPersoneller: FirmaPersonel[] = [
@@ -143,7 +162,7 @@ export const demoPortalHesap: PortalHesap = {
   eposta: 'fp-demo-1@demo-lojistik.local',
   durum: 'Aktif',
   oturumlar: [],
-  olusturma: '2026-01-15',
+  olusturma: KURULUM,
 }
 
 /** KVKK teyidi — demo katılımcı onboarding'i tamamlanmış sayılır */
@@ -154,8 +173,8 @@ export const demoKvkkTeyit: KvkkTeyit = {
   metinId: 'KVKK-01',
   metinSurum: '1.0',
   icerikHash: 'demo',
-  goruntulenme: '2026-01-16T09:00:00',
-  teyitZamani: '2026-01-16T09:00:00',
+  goruntulenme: saat(-294, '09:00'),
+  teyitZamani: saat(-294, '09:00'),
   teyitTuru: 'aydinlatma',
   userAgent: 'demo',
 }
@@ -169,13 +188,13 @@ export const demoAtamalar: EgitimAtama[] = [
     surumId: 'ES-0102',
     firmaId: DEMO_FIRMA_ID,
     personelIds: ['FP-DEMO-1', 'FP-DEMO-2', 'FP-DEMO-3'],
-    atamaTarihi: '2026-10-20',
-    sonTarih: '2026-11-25',
+    atamaTarihi: gun(-17),
+    sonTarih: gun(19),
     zorunlu: true,
     hatirlatmaGun: 3,
     durum: 'Aktif',
     olusturan: 'Demo Yönetici',
-    olaylar: [{ tarih: '2026-10-20', islem: 'Atama oluşturuldu — 3 personel' }],
+    olaylar: [{ tarih: gun(-17), islem: 'Atama oluşturuldu — 3 personel' }],
   },
   {
     id: 'ATM-DEMO-2',
@@ -183,15 +202,15 @@ export const demoAtamalar: EgitimAtama[] = [
     surumId: 'ES-0201',
     firmaId: DEMO_FIRMA_ID,
     personelIds: ['FP-DEMO-1'],
-    atamaTarihi: '2026-09-01',
-    sonTarih: '2026-09-30',
+    atamaTarihi: gun(-66),
+    sonTarih: gun(-37),
     zorunlu: true,
     hatirlatmaGun: 0,
     durum: 'Tamamlandı',
     olusturan: 'Demo Yönetici',
     olaylar: [
-      { tarih: '2026-09-01', islem: 'Atama oluşturuldu — 1 personel' },
-      { tarih: '2026-09-28', islem: 'Tüm katılımcılar tamamladı — atama kapandı' },
+      { tarih: gun(-66), islem: 'Atama oluşturuldu — 1 personel' },
+      { tarih: gun(-39), islem: 'Tüm katılımcılar tamamladı — atama kapandı' },
     ],
   },
 ]
@@ -208,10 +227,10 @@ export const demoIlerlemeler: EgitimIlerleme[] = [
     durum: 'Devam Ediyor',
     icerikler: {
       'IC-0102': { izlenenSn: 300, toplamSn: 600, tamamlandi: false },
-      'IC-0103': { tamamlandi: true, tamamlanmaTarihi: '2026-11-01' },
+      'IC-0103': { tamamlandi: true, tamamlanmaTarihi: gun(-5) },
     },
     denemeler: [],
-    sonErisim: '2026-11-03T10:15:00',
+    sonErisim: saat(-3, '10:15'),
   },
   {
     id: 'ILR-DEMO-2',
@@ -222,7 +241,18 @@ export const demoIlerlemeler: EgitimIlerleme[] = [
     durum: 'Başlamadı',
     icerikler: {},
     denemeler: [],
-    sonErisim: '2026-10-20T08:00:00',
+    sonErisim: '',
+  },
+  {
+    id: 'ILR-DEMO-4',
+    hesapId: 'FP-DEMO-3',
+    egitimId: 'EGT-01',
+    surumId: 'ES-0102',
+    atamaId: 'ATM-DEMO-1',
+    durum: 'Başlamadı',
+    icerikler: {},
+    denemeler: [],
+    sonErisim: '',
   },
   {
     id: 'ILR-DEMO-3',
@@ -232,11 +262,11 @@ export const demoIlerlemeler: EgitimIlerleme[] = [
     atamaId: 'ATM-DEMO-2',
     durum: 'Tamamlandı',
     icerikler: {
-      'IC-0201': { gorulenSayfalar: [1, 2, 3], tamamlandi: true, tamamlanmaTarihi: '2026-09-27' },
-      'IC-0202': { gorulenSayfalar: [1, 2], tamamlandi: true, tamamlanmaTarihi: '2026-09-27' },
+      'IC-0201': { gorulenSayfalar: [1, 2, 3], tamamlandi: true, tamamlanmaTarihi: gun(-40) },
+      'IC-0202': { gorulenSayfalar: [1, 2], tamamlandi: true, tamamlanmaTarihi: gun(-40) },
     },
-    denemeler: [{ no: 1, puan: 88, gecti: true, sureSn: 420, tarih: '2026-09-28T11:30:00', dogruSayisi: 4 }],
-    sonErisim: '2026-09-28T11:30:00',
+    denemeler: [{ no: 1, puan: 88, gecti: true, sureSn: 420, tarih: saat(-39, '11:30'), dogruSayisi: 4 }],
+    sonErisim: saat(-39, '11:30'),
   },
 ]
 
@@ -248,18 +278,18 @@ export const demoBasvuru: SertifikaBasvuru = {
   personelId: 'FP-DEMO-1',
   egitimId: 'EGT-02',
   surumId: 'ES-0201',
-  basvuruTarihi: '2026-09-28',
+  basvuruTarihi: gun(-39),
   durum: 'Onaylandı',
-  tamamlanmaTarihi: '2026-09-28',
+  tamamlanmaTarihi: gun(-39),
   sinavPuani: 88,
   sinavGecti: true,
   denemeSayisi: 1,
   onaylayan: 'Demo Yönetici',
-  onayTarihi: '2026-09-29',
+  onayTarihi: gun(-38),
   sertifikaId: 'CRT-DEMO',
   olaylar: [
-    { tarih: '2026-09-28', kullanici: 'Sistem', islem: 'Başvuru oluşturuldu — eğitim tamamlandı' },
-    { tarih: '2026-09-29', kullanici: 'Demo Yönetici', islem: 'Onaylandı — sertifika SRT-2026-900001 düzenlendi' },
+    { tarih: gun(-39), kullanici: 'Sistem', islem: 'Başvuru oluşturuldu — eğitim tamamlandı' },
+    { tarih: gun(-38), kullanici: 'Demo Yönetici', islem: 'Onaylandı — sertifika SRT-2026-900001 düzenlendi' },
   ],
 }
 
@@ -290,14 +320,14 @@ export const demoSertifika: Sertifika = {
       { unvan: 'Eğitim Koordinatörü', adSoyad: 'Ayşe Kaya' },
     ],
   },
-  tamamlanmaTarihi: '2026-09-28',
-  duzenlenmeTarihi: '2026-09-29',
-  gecerlilikTarihi: '2027-09-29',
+  tamamlanmaTarihi: gun(-39),
+  duzenlenmeTarihi: gun(-38),
+  gecerlilikTarihi: gun(327),
   onaylayan: 'Demo Yönetici',
-  onayTarihi: '2026-09-29',
+  onayTarihi: gun(-38),
   durum: 'Aktif',
   gecmis: [
-    { tarih: '2026-09-28', kullanici: 'Sistem', islem: 'Başvuru oluşturuldu — eğitim tamamlandı' },
-    { tarih: '2026-09-29', kullanici: 'Demo Yönetici', islem: 'Onaylandı — sertifika SRT-2026-900001 düzenlendi' },
+    { tarih: gun(-39), kullanici: 'Sistem', islem: 'Başvuru oluşturuldu — eğitim tamamlandı' },
+    { tarih: gun(-38), kullanici: 'Demo Yönetici', islem: 'Onaylandı — sertifika SRT-2026-900001 düzenlendi' },
   ],
 }

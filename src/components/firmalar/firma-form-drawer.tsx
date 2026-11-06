@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { ArrowLeftIcon, ArrowRightIcon, Building2Icon, CheckIcon, PaperclipIcon, PlusIcon, ShieldCheckIcon, StarIcon, Trash2Icon, UploadIcon, XIcon } from 'lucide-react'
 import { Dialog as Modal } from '@base-ui/react/dialog'
@@ -148,11 +148,14 @@ export function FirmaFormDrawer({
   const [hata, setHata] = useState<string | null>(null)
   const [adim, setAdim] = useState(0)
 
-  useEffect(() => {
+  // Seçili firma değişince form render sırasında sıfırlanır (effect'siz).
+  const [oncekiFirma, setOncekiFirma] = useState(firma)
+  if (oncekiFirma !== firma) {
+    setOncekiFirma(firma)
     setForm(duzenle ? firmadanForm(duzenle) : bosForm)
     setHata(null)
     setAdim(0)
-  }, [firma])
+  }
 
   const set = <K extends keyof FirmaFormState>(k: K, v: FirmaFormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }))

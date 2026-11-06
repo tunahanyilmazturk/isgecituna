@@ -25,6 +25,9 @@ import {
 } from '@/data/personeller'
 import { cn } from '@/lib/utils'
 import { personelAd, usePersonelStore } from '@/stores/personeller-store'
+import { useAuthStore } from '@/stores/auth-store'
+import { sifreHashle } from '@/lib/sifre'
+import { rastgeleSifreUret } from '@/lib/kullanici-adi'
 import { useFirmalarStore } from '@/stores/firmalar-store'
 import { useEgitimlerStore } from '@/stores/egitimler-store'
 import { TODAY } from '@/data/dashboard'
@@ -49,11 +52,14 @@ export default function PersonelDetayPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const { personeller, hesaplar, atamalar, hesapOlustur, hesapGuncelle, davetYenile, oturumKapat, kullaniciAlinmi } = usePersonelStore()
+  const { personeller, hesaplar, atamalar, hesapOlustur, hesapGuncelle, davetYenile, oturumKapat, kullaniciAlinmi, sifreSifirla } = usePersonelStore()
   const firmalar = useFirmalarStore((s) => s.firmalar)
   const { egitimler, ilerlemeler } = useEgitimlerStore()
   const [sekme, setSekme] = useState<string>(params.get('sekme') ?? 'genel')
   const [hesapForm, setHesapForm] = useState<{ kullaniciAdi: string; mod: 'davet' | 'sifre' } | null>(null)
+  const [sifreOnayAcik, setSifreOnayAcik] = useState(false)
+  const [sifreSonuc, setSifreSonuc] = useState<string | null>(null)
+  const kullanici = useAuthStore((s) => s.user)?.name ?? 'Yönetici'
 
   const p = personeller.find((x) => x.id === id)
   const atms = useMemo(
@@ -269,6 +275,8 @@ export default function PersonelDetayPage() {
                     <Satir label="Oluşturma">{hesap.olusturma}</Satir>
                     <Satir label="Son giriş">{hesap.sonGiris ? new Date(hesap.sonGiris).toLocaleString('tr-TR') : '—'}</Satir>
                     <Satir label="Davet bitiş">{hesap.davetBitis ? new Date(hesap.davetBitis).toLocaleString('tr-TR') : '—'}</Satir>
+                    <Satir label="Şifre son değişim">{hesap.sifreDegisimTarihi ? new Date(hesap.sifreDegisimTarihi).toLocaleString('tr-TR') : 'Henüz belirlenmedi'}</Satir>
+                    <Satir label="Şifre değişimi">{hesap.sifreDegisimZorunlu ? 'Zorunlu — ilk girişte değiştirilecek' : 'Gerekmiyor'}</Satir>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {hesap.durum === 'Davet Bekliyor' && (
@@ -286,10 +294,39 @@ export default function PersonelDetayPage() {
                         <PlayCircleIcon /> Aktifleştir
                       </Button>
                     )}
-                    <Button size="sm" variant="outline" onClick={() => toast('Şifre sıfırlama bağlantısı gönderildi (SMTP entegrasyonu ayarlarda yapılandırılır)')}>
-                      <KeyRoundIcon /> Şifre sıfırlama
-                    </Button>
+                    {!sifreOnayAcik && !sifreSonuc && (
+                      <Button size="sm" variant="outline" onClick={() => setSifreOnayAcik(true)}>
+                        <KeyRoundIcon /> Şifreyi sıfırla
+                      </Button>
+                    )}
                   </div>
+                  {sifreOnayAcik && (
+                    <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-xs">
+                      <p className="font-medium">Katılımcının mevcut şifresi geçersiz olacak ve açık oturumları kapanacak.</p>
+                      <p className="mt-1 text-muted-foreground">Yeni geçici şifre oluşturulur; katılımcı ilk girişte kendi şifresini belirlemek zorunda kalır.</p>
+                      <div className="mt-2 flex gap-2">
+                        <Button size="sm" variant="destructive" onClick={async () => {
+                          const yeniSifre = rastgeleSifreUret()
+                          sifreSifirla(hesap.id, await sifreHashle(yeniSifre), kullanici)
+                          setSifreOnayAcik(false)
+                          setSifreSonuc(yeniSifre)
+                          toast.success('Geçici şifre oluşturuldu')
+                        }}>Sıfırla</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setSifreOnayAcik(false)}>Vazgeç</Button>
+                      </div>
+                    </div>
+                  )}
+                  {sifreSonuc && (
+                    <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
+                      <p className="font-medium">Geçici şifre</p>
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <code className="rounded bg-background px-2 py-1 font-mono text-sm">{sifreSonuc}</code>
+                        <Button size="sm" variant="ghost" onClick={() => { void navigator.clipboard?.writeText(sifreSonuc); toast.success('Şifre panoya kopyalandı') }}>Kopyala</Button>
+                      </div>
+                      <p className="mt-2 text-muted-foreground">Bu şifre yalnızca şimdi gösterilir ve kaydedilmez. Katılımcıya iletin; ilk girişte değiştirecek.</p>
+                      <Button size="sm" variant="outline" className="mt-2" onClick={() => setSifreSonuc(null)}>Tamam</Button>
+                    </div>
+                  )}
                   {hesap.oturumlar.length > 0 && (
                     <div className="mt-4 border-t pt-3">
                       <p className="text-xs font-medium">Aktif oturumlar</p>

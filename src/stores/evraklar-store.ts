@@ -6,6 +6,7 @@
  */
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { guvenliDepo } from '@/lib/guvenli-depo'
 
 export const EVRAK_KATEGORILERI = [
   'İSG Sözleşmesi',
@@ -53,7 +54,7 @@ export const useEvrakStore = create<EvrakState>()(
         })),
       sil: (id) => set((s) => ({ evraklar: s.evraklar.filter((x) => x.id !== id) })),
     }),
-    { name: 'isghub-evraklar' },
+    { name: 'isghub-evraklar', storage: guvenliDepo },
   ),
 )
 

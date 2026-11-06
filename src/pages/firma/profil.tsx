@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Alan } from '@/components/form-bits'
 import { useFirmalarStore } from '@/stores/firmalar-store'
 import { useAyarlarStore } from '@/stores/ayarlar-store'
+import { bildirimGonder } from '@/stores/bildirim-store'
 import { useOsgb } from '@/lib/osgb'
 import { useFirmaKapsam, useFIzin, useYetkili } from './bits'
 import { FirmaAvatar } from '@/components/firmalar/firma-avatar'
@@ -36,6 +37,7 @@ export default function FirmaProfilPage() {
   const kaydet = () => {
     firmaGuncelle(f.id, { telefon: form.telefon, eposta: form.eposta, adres: form.adres }, `${kim} — firma portalı`)
     logEkle({ tarih: new Date().toISOString(), kullanici: kim, islem: 'Firma iletişim bilgileri güncellendi (firma portalı)', kayit: f.unvan })
+    bildirimGonder({ hedef: 'osgb', ton: 'amber', baslik: 'Firma iletişim bilgileri değişti', detay: `${f.unvan} · ${kim}`, to: `/panel/firmalar/${f.id}` })
     toast.success('İletişim bilgileri güncellendi')
     setD({ ...form, basladi: false })
   }
@@ -45,6 +47,7 @@ export default function FirmaProfilPage() {
     // Kritik alanlar (vergi/unvan/sicil) doğrudan değişmez — talep geçmişe ve audit log'a yazılır
     firmaGuncelle(f.id, {}, `${kim} değişiklik talebi iletti: ${talep.trim()}`)
     logEkle({ tarih: new Date().toISOString(), kullanici: kim, islem: 'Firma değişiklik talebi (firma portalı)', kayit: `${f.unvan} — ${talep.trim()}` })
+    bildirimGonder({ hedef: 'osgb', ton: 'amber', baslik: 'Firma değişiklik talebi', detay: `${f.unvan} — ${talep.trim()}`, to: `/panel/firmalar/${f.id}` })
     toast.success(`Değişiklik talebiniz ${osgb} yönetimine iletildi`)
     setTalep('')
     setTalepAcik(false)

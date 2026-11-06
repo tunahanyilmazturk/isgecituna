@@ -49,6 +49,7 @@ const RehberPage = lazy(() => import('@/pages/panel/rehber'))
 const RehberYonetimPage = lazy(() => import('@/pages/panel/rehber-yonetim'))
 const IlkSifrePage = lazy(() => import('@/pages/portal/ilk-giris').then((m) => ({ default: m.IlkSifrePage })))
 const KvkkOnayPage = lazy(() => import('@/pages/portal/ilk-giris').then((m) => ({ default: m.KvkkOnayPage })))
+const TelefonPage = lazy(() => import('@/pages/portal/ilk-giris').then((m) => ({ default: m.TelefonPage })))
 const GenelAyarlarPage = lazy(() => import('@/pages/ayarlar/genel'))
 const KurumAyarlarPage = lazy(() => import('@/pages/ayarlar/kurum'))
 const KullanicilarPage = lazy(() => import('@/pages/ayarlar/kullanicilar'))
@@ -73,10 +74,11 @@ const FirmaProfilPage = lazy(() => import('@/pages/firma/profil'))
 const FirmaHesapPage = lazy(() => import('@/pages/firma/hesap'))
 const FirmaSifrePage = lazy(() => import('@/pages/firma/firma-sifre'))
 const FirmaRehberPage = lazy(() => import('@/pages/firma/rehber'))
-const PortalDashboard = lazy(() => import('@/pages/portal/portal-pages').then((m) => ({ default: m.PortalDashboard })))
-const PortalEgitimler = lazy(() => import('@/pages/portal/portal-pages').then((m) => ({ default: m.PortalEgitimler })))
-const PortalProfil = lazy(() => import('@/pages/portal/portal-pages').then((m) => ({ default: m.PortalProfil })))
-const PortalSertifikalar = lazy(() => import('@/pages/portal/portal-pages').then((m) => ({ default: m.PortalSertifikalar })))
+const PortalDashboard = lazy(() => import('@/pages/portal/ana-sayfa').then((m) => ({ default: m.PortalDashboard })))
+const PortalEgitimler = lazy(() => import('@/pages/portal/egitimlerim'))
+const PortalProfil = lazy(() => import('@/pages/portal/profilim'))
+const PortalSertifikalar = lazy(() => import('@/pages/portal/sertifikalarim'))
+const PortalSertifikaDetay = lazy(() => import('@/pages/portal/sertifika-detay'))
 const PortalRehberPage = lazy(() => import('@/pages/portal/rehber'))
 
 function SayfaYukleniyor() {
@@ -101,6 +103,7 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route path="/ilk-giris/sifre" element={lz(<IlkSifrePage />)} />
         <Route path="/ilk-giris/kvkk" element={lz(<KvkkOnayPage />)} />
+        <Route path="/ilk-giris/telefon" element={lz(<TelefonPage />)} />
         <Route path="/ilk-giris/firma-sifre" element={lz(<FirmaSifrePage />)} />
         <Route path="/panel" element={<AppLayout />}>
           <Route index element={lz(<DashboardPage />)} />
@@ -163,6 +166,7 @@ export default function App() {
           <Route index element={lz(<PortalDashboard />)} />
           <Route path="egitimler" element={lz(<PortalEgitimler />)} />
           <Route path="sertifikalar" element={lz(<PortalSertifikalar />)} />
+          <Route path="sertifikalar/:id" element={lz(<PortalSertifikaDetay />)} />
           <Route path="egitimler/:id/oynat" element={lz(<EgitimPlayerPage />)} />
           <Route path="profil" element={lz(<PortalProfil />)} />
           <Route path="rehber" element={lz(<PortalRehberPage />)} />

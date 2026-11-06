@@ -38,8 +38,10 @@ export default function FirmaEvraklarPage() {
 
   const sonYukleme = benim[0]?.tarih.slice(0, 10)
   // Yükleme anları gerçek zamandan alındığı için karşılaştırma da gerçek zamana göre yapılır.
+  // Zaman bileşen ilk açılışta bir kez okunur; render sırasında saat okunmaz.
+  const [simdi] = useState(() => Date.now())
   const son30 = benim.filter((e) => {
-    const fark = (Date.now() - new Date(e.tarih).getTime()) / 86_400_000
+    const fark = (simdi - new Date(e.tarih).getTime()) / 86_400_000
     return fark >= 0 && fark <= 30
   }).length
 

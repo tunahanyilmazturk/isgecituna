@@ -44,6 +44,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useIzin } from '@/lib/izin'
 import { aktifSurum, useEgitimlerStore } from '@/stores/egitimler-store'
+import { egitimSuresiDakika } from '@/data/egitimler'
 import { xlsxDosyaAdi, xlsxIndir } from '@/lib/excel'
 import { useOtoBoy } from '@/lib/use-oto-boy'
 
@@ -148,7 +149,7 @@ export default function EgitimlerPage() {
             e.id,
             e.baslik,
             e.kategori,
-            e.sureDakika,
+            egitimSuresiDakika(e),
             ist.bolumSayisi,
             ist.icerikSayisi,
             ist.soruSayisi,
@@ -386,7 +387,7 @@ export default function EgitimlerPage() {
                       </div>
                     </div>
                     <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
-                      <span className="inline-flex items-center gap-1"><ClockIcon className="size-3" /> {e.sureDakika} dk <span className="mx-0.5 text-border">/</span> v{sv.no}</span>
+                      <span className="inline-flex items-center gap-1"><ClockIcon className="size-3" /> {egitimSuresiDakika(e)} dk <span className="mx-0.5 text-border">/</span> v{sv.no}</span>
                       <span>Güncelleme {e.guncelleme}</span>
                     </div>
                   </div>
@@ -442,7 +443,7 @@ export default function EgitimlerPage() {
                           <span>{ist.icerikSayisi} içerik · {ist.soruSayisi} soru</span>
                         </div>
                       </td>
-                      <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">{e.sureDakika} dk</td>
+                      <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">{egitimSuresiDakika(e)} dk</td>
                       <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">v{sv.no}</td>
                       <td className="px-3 py-2.5 text-xs text-muted-foreground">{e.guncelleme}</td>
                       <td className="px-3 py-2.5">

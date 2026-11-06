@@ -27,6 +27,7 @@ import {
   demoPortalHesap,
   demoSertifika,
   demoYetkili,
+  DEMO_SURUM,
 } from '@/data/demo'
 import { useEkipStore } from '@/stores/ekip-store'
 import { useFirmaPortalStore } from '@/stores/firma-portal-store'
@@ -104,29 +105,60 @@ export const restoreDemoStores = (): void => {
   }
 }
 
-/** Demo kayıtları store'lara enjekte et — idempotent */
+/** Demo sürüm işareti — değişince tarayıcıdaki eski demo kayıtları güncel haline getirilir */
+const SURUM_ANAHTARI = 'isghub-demo'
+
+const surumGuncel = (): boolean => {
+  try {
+    return localStorage.getItem(SURUM_ANAHTARI) === DEMO_SURUM
+  } catch {
+    return false
+  }
+}
+
+const surumYaz = (): void => {
+  try {
+    localStorage.setItem(SURUM_ANAHTARI, DEMO_SURUM)
+  } catch {
+    /* yoksay */
+  }
+}
+
+/**
+ * Demo kayıtlarını listeye ekler. `guncelle` true ise (yeni demo sürümü) kimliği
+ * eşleşen kayıtlar demo sürümüyle değiştirilir; değilse yalnızca eksikler eklenir,
+ * böylece demo oturumundaki değişiklikler yenilemede kaybolmaz.
+ */
+const demoKaydet = <T extends { id: string }>(liste: T[], demo: T[], guncelle: boolean): T[] => {
+  const eksik = demo.filter((d) => !liste.some((x) => x.id === d.id))
+  if (!guncelle) return [...liste, ...eksik]
+  const yeni = new Map<string, T>(demo.map((d): [string, T] => [d.id, d]))
+  return [...liste.map((x) => yeni.get(x.id) ?? x), ...eksik]
+}
+
+/** Demo kayıtlarını store'lara enjekte et — idempotent */
 export const ensureDemoData = (): void => {
-  useEkipStore.setState((s) => ({
-    hesaplar: s.hesaplar.some((h) => h.id === demoHesap.id) ? s.hesaplar : [...s.hesaplar, demoHesap],
-  }))
-  useFirmaPortalStore.setState((s) => ({
-    yetkililer: s.yetkililer.some((y) => y.id === demoYetkili.id) ? s.yetkililer : [...s.yetkililer, demoYetkili],
-  }))
+  const guncelle = !surumGuncel()
+  useEkipStore.setState((s) => ({ hesaplar: demoKaydet(s.hesaplar, [demoHesap], guncelle) }))
+  useFirmaPortalStore.setState((s) => ({ yetkililer: demoKaydet(s.yetkililer, [demoYetkili], guncelle) }))
   useFirmalarStore.setState((s) => ({
-    firmalar: s.firmalar.some((f) => f.id === demoFirma.id) ? s.firmalar : [...s.firmalar, demoFirma],
-    katip: s.katip.some((k) => k.id === demoKatip.id) ? s.katip : [...s.katip, demoKatip],
+    firmalar: demoKaydet(s.firmalar, [demoFirma], guncelle),
+    katip: demoKaydet(s.katip, [demoKatip], guncelle),
   }))
   usePersonelStore.setState((s) => ({
-    personeller: [...s.personeller, ...demoPersoneller.filter((p) => !s.personeller.some((x) => x.id === p.id))],
-    hesaplar: s.hesaplar.some((h) => h.id === demoPortalHesap.id) ? s.hesaplar : [...s.hesaplar, demoPortalHesap],
-    atamalar: [...s.atamalar, ...demoAtamalar.filter((a) => !s.atamalar.some((x) => x.id === a.id))],
-    kvkkTeyitler: s.kvkkTeyitler.some((t) => t.id === demoKvkkTeyit.id) ? s.kvkkTeyitler : [...s.kvkkTeyitler, demoKvkkTeyit],
+    personeller: demoKaydet(s.personeller, demoPersoneller, guncelle),
+    hesaplar: demoKaydet(s.hesaplar, [demoPortalHesap], guncelle),
+    atamalar: demoKaydet(s.atamalar, demoAtamalar, guncelle),
+    kvkkTeyitler: demoKaydet(s.kvkkTeyitler, [demoKvkkTeyit], guncelle),
+  }))
+  // Sertifika kayıtları ilerleme değişiminde çalışan tara() öncesi eklenmeli;
+  // aksi halde demo başvurusu yokken otomatik ikinci bir başvuru üretilir.
+  useSertifikaStore.setState((s) => ({
+    sertifikalar: demoKaydet(s.sertifikalar, [demoSertifika], guncelle),
+    basvurular: demoKaydet(s.basvurular, [demoBasvuru], guncelle),
   }))
   useEgitimlerStore.setState((s) => ({
-    ilerlemeler: [...s.ilerlemeler, ...demoIlerlemeler.filter((i) => !s.ilerlemeler.some((x) => x.id === i.id))],
+    ilerlemeler: demoKaydet(s.ilerlemeler, demoIlerlemeler, guncelle),
   }))
-  useSertifikaStore.setState((s) => ({
-    sertifikalar: s.sertifikalar.some((c) => c.id === demoSertifika.id) ? s.sertifikalar : [...s.sertifikalar, demoSertifika],
-    basvurular: s.basvurular.some((b) => b.id === demoBasvuru.id) ? s.basvurular : [...s.basvurular, demoBasvuru],
-  }))
+  if (guncelle) surumYaz()
 }

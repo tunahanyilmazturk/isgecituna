@@ -44,7 +44,9 @@ export default function FirmaDashboard() {
   const devamEden = satirlar.filter((s) =>
     ['Devam Ediyor', 'İçerikler Tamamlandı', 'Sınav Bekleniyor', 'Sınav Başarılı'].includes(s.durum),
   ).length
-  const tamamlanan = satirlar.filter((s) => s.durum === 'Tamamlandı' || s.durum === 'Onay Bekliyor').length
+  // Tamamlanan yalnızca İSG onayı verilmiş kayıtlardır; onay bekleyenler ayrıca sayılır
+  const tamamlanan = satirlar.filter((s) => s.durum === 'Tamamlandı').length
+  const onayBekleyen = satirlar.filter((s) => s.durum === 'Onay Bekliyor').length
   const baslamayan = satirlar.filter((s) => !s.sonErisim).length
   const basarisiz = satirlar.filter((s) => s.durum === 'Sınav Başarısız').length
 
@@ -127,6 +129,7 @@ export default function FirmaDashboard() {
               </div>
               <p className="mt-3 text-[11px] text-muted-foreground">
                 {satirlar.length} eğitim kaydı · {atamalarim.length} atama üzerinden
+                {onayBekleyen > 0 && <> · {onayBekleyen} İSG onayı bekliyor</>}
               </p>
             </>
           )}

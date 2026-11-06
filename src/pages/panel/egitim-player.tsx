@@ -40,6 +40,7 @@ import { OnSinavEkrani } from '@/components/egitim/on-sinav'
 import { usePersonelStore } from '@/stores/personeller-store'
 import { useIzin } from '@/lib/izin'
 import { useEgitimDosyaUrl } from '@/lib/egitim-assets'
+import { atlamaSiniri, enIleriGuncelle, izlenenYuzde } from '@/lib/izleme'
 import { hariciVideoKaynakCoz } from '@/lib/egitim-video'
 
 const turIkon: Record<IcerikTur, typeof FileVideoIcon> = {
@@ -431,6 +432,21 @@ function IcerikOynatici({
 
 /* --------------------------------- Video -------------------------------- */
 
+/**
+ * Oynatıcıda sekmenin görünür olduğu süreyi (sn) sayar. Sekme arka plandayken sayılmaz.
+ * Kendi kendine tamamlanan (harici video, metin) içeriklerde asgari bekleme süresi için kullanılır.
+ */
+function useIzlemeSayaci(gerekliSn: number) {
+  const [sure, setSure] = useState(0)
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (document.visibilityState === 'visible') setSure((s) => s + 1)
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [])
+  return { sure, yeterli: sure >= gerekliSn }
+}
+
 function HariciVideoOynatici({
   ic,
   kaynak,
@@ -443,6 +459,9 @@ function HariciVideoOynatici({
   tamamlaVeIlerle: (ic: Icerik) => void
 }) {
   const tamamlandi = !!ilerleme?.tamamlandi
+  // Harici oynatıcıda izleme ölçülemez: içeriğin süresinin en az %80'i sayfada geçmeden tamamlanamaz
+  const gerekliSn = Math.round(ic.sureDakika * 60 * 0.8)
+  const { sure, yeterli } = useIzlemeSayaci(gerekliSn)
   const kutuRef = useRef<HTMLDivElement>(null)
   const [tamEkran, setTamEkran] = useState(false)
 
@@ -495,12 +514,15 @@ function HariciVideoOynatici({
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-semibold">Ders ilerlemesi</h3>
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{ic.aciklama || 'Videoyu harici oynatıcıdan izleyin. İzlemeyi bitirdiğinizde tamamlandı olarak işaretleyin.'}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground/70">Harici oynatıcı izleme oranını paylaşmadığı için tamamlanmayı siz onaylarsınız.</p>
+          <p className="mt-1 text-[11px] text-muted-foreground/70">Harici oynatıcı izleme oranını paylaşmadığı için tamamlanma, sayfada geçen süreye göre sizin onayınızla kaydedilir.</p>
         </div>
         {tamamlandi ? (
           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400"><CheckCircle2Icon className="size-4" /> Tamamlandı</span>
         ) : (
-          <Button size="sm" className="shrink-0" onClick={() => tamamlaVeIlerle(ic)}><CheckCircle2Icon /> İzledim ve tamamla</Button>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <Button size="sm" disabled={!yeterli} onClick={() => tamamlaVeIlerle(ic)}><CheckCircle2Icon /> İzledim ve tamamla</Button>
+            {!yeterli && <span className="text-[11px] text-muted-foreground tabular-nums">Tamamlamak için {Math.ceil((gerekliSn - sure) / 60)} dk daha izleyin</span>}
+          </div>
         )}
       </div>
       <p className="mt-2 text-center text-[10px] text-muted-foreground/60">Bu içerik {kaynak.saglayici} üzerinden güvenli gömülü oynatıcıda açılır.</p>
@@ -534,10 +556,14 @@ function VideoOynatici({
   const [yukleniyor, setYukleniyor] = useState(true)
   const [hata, setHata] = useState(false)
   const sonKayit = useRef(0)
+  // Yüzde ve tamamlanma yalnızca en uzak izlenen nokta ile hesaplanır; atlama bunu ilerletmez
+  const enIleriRef = useRef(il?.izlenenSn ?? 0)
+  const [enIleri, setEnIleri] = useState(il?.izlenenSn ?? 0)
+  const sonZaman = useRef(0)
 
   const kaynak = ic.dosya?.url ?? hariciKaynak ?? (ic.tur === 'harici-video' ? undefined : ic.url)
   const src = useEgitimDosyaUrl(kaynak)
-  const yuzde = toplam > 0 ? Math.min(100, Math.round((sn / toplam) * 100)) : 0
+  const yuzde = izlenenYuzde(enIleri, toplam)
   const tamam = il?.tamamlandi || yuzde >= minYuzde
 
   const zamanGuncelle = () => {
@@ -545,11 +571,30 @@ function VideoOynatici({
     if (!v) return
     setSn(v.currentTime)
     setToplam(v.duration || 0)
-    // İlerleme ~4 saniyede bir kaydedilir — backend'de periyodik sync
-    if (Math.abs(v.currentTime - sonKayit.current) > 4) {
-      sonKayit.current = v.currentTime
-      kaydet(ic.id, { izlenenSn: Math.floor(v.currentTime), toplamSn: Math.floor(v.duration || 0), tamamlandi: v.currentTime / (v.duration || 1) >= minYuzde / 100 })
+    const onceki = sonZaman.current
+    sonZaman.current = v.currentTime
+    const yeni = enIleriGuncelle(enIleriRef.current, onceki, v.currentTime, v.seeking)
+    if (yeni !== enIleriRef.current) {
+      enIleriRef.current = yeni
+      setEnIleri(yeni)
     }
+    // İlerleme ~4 saniyede bir kaydedilir — backend'de periyodik sync
+    if (Math.abs(enIleriRef.current - sonKayit.current) > 4) {
+      sonKayit.current = enIleriRef.current
+      const sure = v.duration || 0
+      kaydet(ic.id, {
+        izlenenSn: Math.floor(enIleriRef.current),
+        toplamSn: Math.floor(sure),
+        tamamlandi: !!il?.tamamlandi || izlenenYuzde(enIleriRef.current, sure) >= minYuzde,
+      })
+    }
+  }
+
+  // Konum, izlenen en uzak noktanın ötesine atlanamaz (kaydırıcı, ok tuşları, sar düğmeleri, native kontrol)
+  const atlamayiSinirla = (v: HTMLVideoElement) => {
+    const sinir = atlamaSiniri(v.currentTime, enIleriRef.current)
+    if (sinir !== v.currentTime) v.currentTime = sinir
+    sonZaman.current = v.currentTime
   }
 
   const sar = (d: number) => {
@@ -628,13 +673,19 @@ function VideoOynatici({
             onLoadedMetadata={(e) => {
               setToplam(e.currentTarget.duration)
               setYukleniyor(false)
-              // Kaldığı yerden devam
-              if (il?.izlenenSn && il.izlenenSn < e.currentTarget.duration - 5)
+              // Kaldığı yerden devam (en uzak izlenen noktadan)
+              if (il?.izlenenSn && il.izlenenSn < e.currentTarget.duration - 5) {
                 e.currentTarget.currentTime = il.izlenenSn
+                sonZaman.current = il.izlenenSn
+              }
             }}
+            onSeeking={(e) => atlamayiSinirla(e.currentTarget)}
             onLoadedData={() => setYukleniyor(false)}
             onEnded={() => {
-              kaydet(ic.id, { izlenenSn: Math.floor(ref.current?.duration ?? 0), tamamlandi: true, tamamlanmaTarihi: new Date().toISOString() })
+              const sure = ref.current?.duration ?? 0
+              enIleriRef.current = sure
+              setEnIleri(sure)
+              kaydet(ic.id, { izlenenSn: Math.floor(sure), tamamlandi: true, tamamlanmaTarihi: new Date().toISOString() })
               setOynuyor(false)
             }}
             onError={() => { setYukleniyor(false); setHata(true) }}
@@ -644,7 +695,7 @@ function VideoOynatici({
         {yukleniyor && !hata && <div className="absolute inset-0 flex items-center justify-center bg-black/35 text-xs text-white/70"><span className="mr-2 size-4 animate-spin rounded-full border-2 border-white/25 border-t-amber-400" /> Video hazırlanıyor…</div>}
         {!hata && !yukleniyor && !oynuyor && <button type="button" onClick={oynatDuraklat} aria-label="Videoyu oynat" className="absolute top-1/2 left-1/2 z-10 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/55 text-white shadow-lg backdrop-blur-sm transition hover:scale-105 hover:bg-amber-500 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-400"><PlayIcon className="ml-1 size-7 fill-current" /></button>}
         {!hata && <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black via-black/90 to-transparent px-3 pt-12 pb-3 sm:px-5 sm:pb-4">
-          <input type="range" min={0} max={toplam || 1} step={0.1} value={sn} onChange={(e) => { const value = Number(e.target.value); if (ref.current) ref.current.currentTime = value; setSn(value) }} className="mb-3 h-1.5 w-full cursor-pointer accent-amber-400" aria-label="Video konumu" aria-valuetext={`${fmtSn(sn)} / ${fmtSn(toplam)}`} />
+          <input type="range" min={0} max={Math.max(enIleri, 0.1)} step={0.1} value={sn} onChange={(e) => { const value = atlamaSiniri(Number(e.target.value), enIleriRef.current); if (ref.current) ref.current.currentTime = value; setSn(value) }} className="mb-3 h-1.5 w-full cursor-pointer accent-amber-400" aria-label="Video konumu" aria-valuetext={`${fmtSn(sn)} / ${fmtSn(toplam)} · izlenen ${fmtSn(enIleri)}`} />
           <div className="flex items-center gap-1.5 text-white sm:gap-2">
             <button type="button" aria-label="10 saniye geri sar" onClick={() => sar(-10)} className="flex size-9 items-center justify-center rounded-lg text-white/75 transition hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-amber-400"><RotateCcwIcon className="size-4" /><span className="sr-only">10 saniye geri</span></button>
             <button type="button" aria-label={oynuyor ? 'Videoyu duraklat' : 'Videoyu oynat'} onClick={oynatDuraklat} className="flex size-10 items-center justify-center rounded-xl bg-amber-400 text-zinc-950 transition hover:bg-amber-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">{oynuyor ? <PauseIcon className="size-5 fill-current" /> : <PlayIcon className="ml-0.5 size-5 fill-current" />}</button>
@@ -709,10 +760,13 @@ function SayfaOynatici({
     () => new Set(il?.gorulenSayfalar ?? [0]),
   )
 
-  useEffect(() => {
+  // Kayıtlı ilerleme değişince yerel sayfa durumu render sırasında yeniden eşitlenir (effect'siz).
+  const [onceki, setOnceki] = useState({ sonSayfa: il?.sonSayfa, gorulenSayfalar: il?.gorulenSayfalar, toplam })
+  if (onceki.sonSayfa !== il?.sonSayfa || onceki.gorulenSayfalar !== il?.gorulenSayfalar || onceki.toplam !== toplam) {
+    setOnceki({ sonSayfa: il?.sonSayfa, gorulenSayfalar: il?.gorulenSayfalar, toplam })
     setSayfa(Math.min(il?.sonSayfa ?? 0, Math.max(0, toplam - 1)))
     setGorulen(new Set(il?.gorulenSayfalar ?? [0]))
-  }, [il?.sonSayfa, il?.gorulenSayfalar, toplam])
+  }
 
   const git = (s: number) => {
     const y = Math.max(0, Math.min(toplam - 1, s))
@@ -1010,9 +1064,29 @@ function GorselOynatici({ ic, tamamlaVeIlerle }: { ic: Icerik; tamamlaVeIlerle: 
 }
 
 function MetinOynatici({ ic, tamamlaVeIlerle }: { ic: Icerik; tamamlaVeIlerle: (i: Icerik) => void }) {
+  // Tamamlama: metnin sonuna gelinmeli ve içeriğin süresinin yarısı sayfada geçmiş olmalı
+  const gerekliSn = Math.round(ic.sureDakika * 60 * 0.5)
+  const { sure, yeterli: sureYeterli } = useIzlemeSayaci(gerekliSn)
+  const [sonaGeldi, setSonaGeldi] = useState(false)
+  const metinYeterli = sonaGeldi && sureYeterli
+  const notUst = metinYeterli
+    ? 'Okuduktan sonra tamamlayın'
+    : !sonaGeldi
+      ? 'Metnin sonuna kadar kaydırın'
+      : `Tamamlamak için ${Math.ceil((gerekliSn - sure) / 60)} dk daha okuyun`
   return (
     <div className="mx-auto flex h-full w-full max-w-5xl flex-col p-3 sm:p-4 lg:p-6">
-      <article className="min-h-0 flex-1 overflow-y-auto rounded-2xl border bg-card shadow-sm">
+      <article
+        ref={(el) => {
+          // Kaydırma gerektirmeyen kısa metinler de sona gelinmiş sayılır
+          if (el && el.scrollHeight <= el.clientHeight + 4) setSonaGeldi(true)
+        }}
+        onScroll={(e) => {
+          const el = e.currentTarget
+          if (el.scrollHeight - el.scrollTop - el.clientHeight < 24) setSonaGeldi(true)
+        }}
+        className="min-h-0 flex-1 overflow-y-auto rounded-2xl border bg-card shadow-sm"
+      >
         {ic.id === 'YUK-IC17' ? (
           <div className="p-3 sm:p-5 lg:p-6"><YuksekteKapanis /></div>
         ) : (
@@ -1035,7 +1109,7 @@ function MetinOynatici({ ic, tamamlaVeIlerle }: { ic: Icerik; tamamlaVeIlerle: (
           </>
         )}
       </article>
-      <SayfaAlt ic={ic} tamam tamamlaVeIlerle={tamamlaVeIlerle} notUst="Okuduktan sonra tamamlayın" />
+      <SayfaAlt ic={ic} tamam={metinYeterli} tamamlaVeIlerle={tamamlaVeIlerle} notUst={notUst} />
     </div>
   )
 }

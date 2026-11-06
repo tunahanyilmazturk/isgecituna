@@ -16,6 +16,8 @@ import {
   UsersIcon,
 } from 'lucide-react'
 import { PortalTopbar, type PortalBildirim } from '@/components/portal-topbar'
+import { useBildirimStore } from '@/stores/bildirim-store'
+import { bildirimGorunumu } from '@/lib/bildirim-view'
 import { cn } from '@/lib/utils'
 import { gunFarki } from '@/lib/date'
 import { useOsgb } from '@/lib/osgb'
@@ -85,6 +87,15 @@ export default function FirmaLayout() {
   const aktif =
     menu.find((m) => (m.end ? pathname === m.to : pathname.startsWith(m.to)))?.label ?? 'Portal'
 
+  const tumUygulamaBildirimleri = useBildirimStore((s) => s.bildirimler)
+  const firmaId = kapsam.firma?.id
+  const firmaBildirimleri = useMemo(
+    () =>
+      tumUygulamaBildirimleri
+        .filter((b) => b.hedef === `firma:${firmaId}`)
+        .map(bildirimGorunumu),
+    [tumUygulamaBildirimleri, firmaId],
+  )
   const bildirimler = useMemo<PortalBildirim[]>(() => {
     const satirlar = takipSatirlari(kapsam)
     const acik = satirlar.filter((s) => s.durum !== 'Tamamlandı')
@@ -151,7 +162,7 @@ export default function FirmaLayout() {
           kok={firma?.kisaAd ?? 'Firma Portalı'}
           aktif={aktif}
           kullaniciTo="/firma/hesap"
-          bildirimler={bildirimler}
+          bildirimler={[...firmaBildirimleri, ...bildirimler]}
         />
         <main className="min-w-0 flex-1 overflow-y-auto pb-24 lg:pb-0">
           <Outlet />

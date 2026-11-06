@@ -20,6 +20,8 @@ import { usePersonelStore } from '@/stores/personeller-store'
 import { useEgitimlerStore } from '@/stores/egitimler-store'
 import { useSertifikaStore } from '@/stores/sertifikalar-store'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
+import { useBildirimStore } from '@/stores/bildirim-store'
+import { bildirimGorunumu } from '@/lib/bildirim-view'
 
 const menu = [
   { to: '/portal', label: 'Ana Sayfa', ikon: HomeIcon, end: true },
@@ -29,8 +31,9 @@ const menu = [
   { to: '/portal/rehber', label: 'Kullanım Merkezi', ikon: BookOpenIcon },
 ]
 
-function PortalNav({ onNavigate }: { onNavigate?: () => void }) {
+function PortalNav({ onNavigate, acikSayi }: { onNavigate?: () => void; acikSayi: number }) {
   const osgb = useOsgb()
+  const user = useAuthStore((s) => s.user)
   const ad = osgb.kisaAd || osgb.unvan
   return (
     <div className="flex h-full flex-col">
@@ -57,10 +60,27 @@ function PortalNav({ onNavigate }: { onNavigate?: () => void }) {
               )
             }
           >
-            <m.ikon className="size-4" /> {m.label}
+            <m.ikon className="size-4" />
+            <span className="flex-1">{m.label}</span>
+            {m.to === '/portal/egitimler' && acikSayi > 0 && (
+              <span className="rounded-full bg-amber-500/15 px-1.5 text-[11px] font-medium text-amber-600 tabular-nums dark:text-amber-400">
+                {acikSayi}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
+      {user && (
+        <div className="mx-3 mb-4 flex items-center gap-3 rounded-xl border bg-card/60 p-3">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-xs font-semibold text-white">
+            {user.initials}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-xs font-medium">{user.name}</p>
+            <p className="truncate text-[11px] text-muted-foreground">{user.unvan}</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -76,6 +96,26 @@ export default function PortalLayout() {
 
   const aktif =
     menu.find((m) => (m.end ? pathname === m.to : pathname.startsWith(m.to)))?.label ?? 'Portal'
+
+  const acikSayi = useMemo(
+    () =>
+      atamalar.filter(
+        (a) =>
+          a.durum !== 'İptal' &&
+          a.personelIds.includes(pid) &&
+          ilerlemedenKisi(ilerlemeler.find((i) => i.hesapId === pid && i.atamaId === a.id)?.durum, a.sonTarih) !== 'Tamamlandı',
+      ).length,
+    [atamalar, ilerlemeler, pid],
+  )
+
+  const tumUygulamaBildirimleri = useBildirimStore((s) => s.bildirimler)
+  const katilimciBildirimleri = useMemo(
+    () =>
+      tumUygulamaBildirimleri
+        .filter((b) => b.hedef === `katilimci:${pid}`)
+        .map(bildirimGorunumu),
+    [tumUygulamaBildirimleri, pid],
+  )
 
   const bildirimler = useMemo<PortalBildirim[]>(() => {
     const egitimAd = (id: string) => egitimler.find((e) => e.id === id)?.baslik ?? 'Eğitim'
@@ -124,14 +164,14 @@ export default function PortalLayout() {
   return (
     <div className="flex h-screen bg-background">
       <aside className="hidden w-60 shrink-0 flex-col border-r bg-card/40 lg:flex">
-        <PortalNav />
+        <PortalNav acikSayi={acikSayi} />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <PortalTopbar
           kok="Eğitim Portalı"
           aktif={aktif}
           kullaniciTo="/portal/profil"
-          bildirimler={bildirimler}
+          bildirimler={[...katilimciBildirimleri, ...bildirimler]}
         />
         <main className="min-w-0 flex-1 overflow-y-auto pb-24 lg:pb-0">
           <Outlet />

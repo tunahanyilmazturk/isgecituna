@@ -646,34 +646,20 @@ function IcerikDrawer({
   )
   const [surukle, setSurukle] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null)
-
   const dosyaGerekli = !['metin', 'harici-video'].includes(tur)
 
   const dosyaSec = (f: File) => {
-    if (timer.current) clearInterval(timer.current)
     const boyut = f.size > 1048576 ? `${(f.size / 1048576).toFixed(1)} MB` : `${Math.ceil(f.size / 1024)} KB`
     const id = nid('Y')
     const y: Yukleme = { id, ad: f.name, boyut, yuzde: 0, durum: 'yukleniyor' }
     setYukleme(y)
+    // Yüzde gösterilmez: kayıt tarayıcı deposuna tek adımda yazılır; gerçek ilerleme ölçülemediği için sahte çubuk yok
     void egitimDosyasiKaydet(f).then((url) => {
-      setYukleme((c) => c?.id !== id ? c : { ...c, url, kalici: true, durum: c.yuzde >= 100 ? 'tamam' : 'yukleniyor' })
+      setYukleme((c) => c?.id !== id ? c : { ...c, url, kalici: true, yuzde: 100, durum: 'tamam' })
     }).catch(() => {
       setYukleme((c) => c?.id !== id ? c : { ...c, durum: 'hata' })
       toast.error('Dosya kalıcı olarak kaydedilemedi')
     })
-    // Gerçek upload backend'de; frontend'de yükleme akışını simüle eder (hata/tekrar durumları dahil)
-    timer.current = setInterval(() => {
-      setYukleme((c) => {
-        if (!c || c.durum !== 'yukleniyor') return c
-        const yuzde = Math.min(100, c.yuzde + 8 + Math.floor(Math.random() * 10))
-        if (yuzde >= 100) {
-          if (timer.current) clearInterval(timer.current)
-          return { ...c, yuzde: 100, durum: c.kalici ? 'tamam' : 'yukleniyor' }
-        }
-        return { ...c, yuzde }
-      })
-    }, 120)
   }
 
   const kaydet = () => {
@@ -823,7 +809,7 @@ function IcerikDrawer({
                     />
                   </div>
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    {yukleme.durum === 'yukleniyor' ? `Yükleniyor… %${yukleme.yuzde}` : yukleme.durum === 'tamam' ? 'Yükleme tamamlandı' : 'Yükleme hatası'}
+                    {yukleme.durum === 'yukleniyor' ? 'Kaydediliyor…' : yukleme.durum === 'tamam' ? 'Yükleme tamamlandı' : 'Yükleme hatası'}
                   </p>
                 </div>
               )}

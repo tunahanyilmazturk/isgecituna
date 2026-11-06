@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { KeyRoundIcon, LogOutIcon, MonitorIcon, ShieldCheckIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Alan } from '@/components/form-bits'
-import { sifreHashle } from '@/data/ekip'
+import { sifreDogrula, sifreHashle } from '@/lib/sifre'
 import { yetkiliDurumRenk } from '@/data/firma-portal'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
@@ -26,11 +26,11 @@ export default function FirmaHesapPage() {
     ? useFirmaPortalStore.getState().yetkililer.filter((y) => y.firmaId === k.firmaId && y.id !== yetkili.id)
     : []
 
-  const degistir = () => {
-    if (sifreHashle(s.eski) !== yetkili.sifreHash) return toast.error('Mevcut şifre hatalı')
+  const degistir = async () => {
+    if (!(await sifreDogrula(s.eski, yetkili.sifreHash))) return toast.error('Mevcut şifre hatalı')
     if (s.yeni.length < 6) return toast.error('Yeni şifre en az 6 karakter olmalı')
     if (s.yeni !== s.tekrar) return toast.error('Yeni şifreler eşleşmiyor')
-    sifreDegistir(yetkili.id, s.yeni)
+    sifreDegistir(yetkili.id, await sifreHashle(s.yeni))
     toast.success('Şifreniz güncellendi')
     setS({ eski: '', yeni: '', tekrar: '' })
   }

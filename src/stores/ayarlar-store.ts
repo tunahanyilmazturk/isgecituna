@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { guvenliDepo } from '@/lib/guvenli-depo'
 import {
   auditSeed,
   basarisizSeed,
@@ -112,6 +113,7 @@ export const useAyarlarStore = create<AyarlarState>()(
     }),
     {
       name: 'isghub-ayarlar',
+      storage: guvenliDepo,
       /* Eski persist kayıtlarında kisaAd gibi yeni alanlar eksik olabilir —
          kurum nesnesini seed ile derin birleştir */
       merge: (persisted, current) => {

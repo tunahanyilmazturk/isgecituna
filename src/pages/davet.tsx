@@ -5,10 +5,12 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alan } from '@/components/form-bits'
-import { BUGUN, hesapGorunenAd, sifreHashle } from '@/data/ekip'
+import { BUGUN, hesapGorunenAd } from '@/data/ekip'
+import { sifreHashle } from '@/lib/sifre'
 import { useEkipStore } from '@/stores/ekip-store'
 import { useAyarlarStore } from '@/stores/ayarlar-store'
 import { useFirmaPortalStore } from '@/stores/firma-portal-store'
+import { personelAd, usePersonelStore } from '@/stores/personeller-store'
 
 const simdi = () => new Date().toISOString()
 
@@ -24,24 +26,44 @@ export default function DavetPage() {
   const [hata, setHata] = useState('')
   const [tamam, setTamam] = useState(false)
 
+  const personelHesaplari = usePersonelStore((s) => s.hesaplar)
+  const personeller = usePersonelStore((s) => s.personeller)
+  const pDavetKabul = usePersonelStore((s) => s.davetKabul)
   const hesap = hesaplar.find((h) => h.davetToken === token)
   const fyHesap = yetkililer.find((y) => y.davetToken === token)
-  const gecersiz = !hesap && !fyHesap
+  const katilimci = personelHesaplari.find((h) => h.davetToken === token)
+  const katilimciPersonel = katilimci ? personeller.find((p) => p.id === katilimci.personelId) : undefined
+  const gecersiz = !hesap && !fyHesap && !katilimci
   const suresiDolmus =
     (!!hesap && !!hesap.davetBitis && hesap.davetBitis < BUGUN) ||
-    (!!fyHesap && !!fyHesap.davetBitis && fyHesap.davetBitis.slice(0, 10) < BUGUN)
+    (!!fyHesap && !!fyHesap.davetBitis && fyHesap.davetBitis.slice(0, 10) < BUGUN) ||
+    (!!katilimci && !!katilimci.davetBitis && katilimci.davetBitis < simdi())
 
-  const kabul = () => {
+  const kabul = async () => {
     if (sifre.length < 6) return setHata('Şifre en az 6 karakter olmalı.')
     if (sifre !== sifre2) return setHata('Şifreler eşleşmiyor.')
-    // Firma yetkilisi daveti — kendi store'unda tek kullanımlık kabul
-    if (!hesap && fyHesap) {
-      if (!token || !fyDavetKabul(token, sifre)) return setHata('Bağlantı geçersiz veya süresi dolmuş.')
+    const ozet = await sifreHashle(sifre)
+    // Katılımcı (çalışan) daveti — personel store'unda tek kullanımlık kabul; ardından KVKK onayı giriş sırasında istenir
+    if (katilimci) {
+      if (!token || !pDavetKabul(token, ozet)) return setHata('Bağlantı geçersiz veya süresi dolmuş.')
+      logEkle({
+        tarih: simdi(),
+        kullanici: katilimci.kullaniciAdi,
+        islem: 'Katılımcı daveti kabul edildi',
+        kayit: `${katilimci.kullaniciAdi} · ${katilimci.eposta}`,
+      })
       setTamam(true)
       toast.success('Hesabınız aktifleştirildi')
       return
     }
-    if (!token || !davetKabulEt(token, sifreHashle(sifre))) return setHata('Bağlantı geçersiz veya süresi dolmuş.')
+    // Firma yetkilisi daveti — kendi store'unda tek kullanımlık kabul
+    if (!hesap && fyHesap) {
+      if (!token || !fyDavetKabul(token, ozet)) return setHata('Bağlantı geçersiz veya süresi dolmuş.')
+      setTamam(true)
+      toast.success('Hesabınız aktifleştirildi')
+      return
+    }
+    if (!token || !davetKabulEt(token, ozet)) return setHata('Bağlantı geçersiz veya süresi dolmuş.')
     logEkle({
       tarih: simdi(),
       kullanici: hesap?.kullaniciAdi ?? 'davet',
@@ -97,10 +119,10 @@ export default function DavetPage() {
               <ShieldCheckIcon className="mt-0.5 size-4 shrink-0 text-amber-500" />
               <p className="text-[12px] text-muted-foreground">
                 <b className="text-foreground">
-                  {hesap ? hesapGorunenAd(hesap, uyeler) : fyHesap ? `${fyHesap.ad} ${fyHesap.soyad}` : ''}
+                  {katilimciPersonel ? personelAd(katilimciPersonel) : hesap ? hesapGorunenAd(hesap, uyeler) : fyHesap ? `${fyHesap.ad} ${fyHesap.soyad}` : ''}
                 </b>{' '}
                 için hesap oluşturuluyor. Kullanıcı adınız:{' '}
-                <b className="text-foreground">@{(hesap ?? fyHesap)?.kullaniciAdi}</b>
+                <b className="text-foreground">@{(katilimci ?? hesap ?? fyHesap)?.kullaniciAdi}</b>
               </p>
             </div>
             <Alan label="Yeni şifre">
@@ -112,7 +134,7 @@ export default function DavetPage() {
             {hata && <div className="rounded-lg bg-destructive/10 px-3 py-2 text-[12px] text-destructive">{hata}</div>}
             <Button className="w-full" onClick={kabul}>Şifremi Belirle ve Hesabı Aktifleştir</Button>
             <p className="text-center text-[10.5px] text-muted-foreground">
-              Bu bağlantı {(hesap ?? fyHesap)?.davetBitis} tarihine kadar tek kullanımlıktır.
+              Bu bağlantı {(katilimci ?? hesap ?? fyHesap)?.davetBitis?.slice(0, 10)} tarihine kadar tek kullanımlıktır.
             </p>
           </div>
         )}

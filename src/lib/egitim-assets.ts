@@ -44,23 +44,23 @@ const egitimDosyasiUrl = async (ref: string): Promise<string> => {
 }
 
 export const useEgitimDosyaUrl = (ref?: string) => {
-  const [url, setUrl] = useState<string>()
+  // Sonuç, ürettiği ref ile birlikte tutulur; ref değiştiğinde eski URL effect içinde sıfırlanmadan düşer.
+  const [sonuc, setSonuc] = useState<{ ref?: string; url?: string }>({})
   useEffect(() => {
     let aktif = true
     let olusanUrl: string | undefined
-    setUrl(undefined)
     if (ref) {
       void egitimDosyasiUrl(ref)
-        .then((sonuc) => {
+        .then((url) => {
           if (!aktif) {
-            if (sonuc.startsWith('blob:')) URL.revokeObjectURL(sonuc)
+            if (url.startsWith('blob:')) URL.revokeObjectURL(url)
             return
           }
-          if (sonuc.startsWith('blob:')) olusanUrl = sonuc
-          setUrl(sonuc)
+          if (url.startsWith('blob:')) olusanUrl = url
+          setSonuc({ ref, url })
         })
         .catch(() => {
-          if (aktif) setUrl(undefined)
+          if (aktif) setSonuc({ ref })
         })
     }
     return () => {
@@ -68,5 +68,5 @@ export const useEgitimDosyaUrl = (ref?: string) => {
       if (olusanUrl) URL.revokeObjectURL(olusanUrl)
     }
   }, [ref])
-  return url
+  return sonuc.ref === ref ? sonuc.url : undefined
 }

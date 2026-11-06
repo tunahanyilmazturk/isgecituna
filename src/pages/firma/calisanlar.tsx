@@ -16,6 +16,8 @@ import ExcelJS from 'exceljs'
 import { Button } from '@/components/ui/button'
 import { CipGrup, FiltrePopover, ListeFooter } from '@/components/list-bits'
 import { cn } from '@/lib/utils'
+import { sifreHashle } from '@/lib/sifre'
+import { bildirimGonder } from '@/stores/bildirim-store'
 import { xlsxDosyaAdi, xlsxIndir } from '@/lib/excel'
 import { durumRenk, ilerlemedenKisi, kisiDurumRenk, tcMaske } from '@/data/personeller'
 import { durumRenkSertifika, sertifikaGuncelDurum } from '@/data/sertifikalar'
@@ -335,10 +337,10 @@ function TopluModal({ k, kullanici, onKapat }: { k: Kapsam; kullanici: string; o
 
   const gecerliSayi = satirlar.filter((s) => !s.hata).length
 
-  const olustur = () => {
-    const kayitlar = satirlar
+  const olustur = async () => {
+    const kayitlar = await Promise.all(satirlar
       .filter((s) => !s.hata)
-      .map((s) => {
+      .map(async (s) => {
         const h = s.hucre
         const kul = h.kullaniciAdi.trim() || benzersizKullaniciAdi(kullaniciAdiUret(h.ad, h.soyad), kullaniciAlinmi)
         return {
@@ -352,11 +354,11 @@ function TopluModal({ k, kullanici, onKapat }: { k: Kapsam; kullanici: string; o
           // Kullanıcı adı üretilemiyorsa hesap açılmaz — personel kaydı yine oluşur
           hesap: hesapAc && !!kul,
           kullaniciAdi: kul,
-          sifre: h.sifre || rastgeleSifre(),
+          sifreHash: await sifreHashle(h.sifre || rastgeleSifre()),
           sifreDegisimZorunlu: true,
           islemNotu: `Toplu ekleme — ${kullanici} (firma portalı)`,
         }
-      })
+      }))
     const sonuc = topluOlusturBatch(kayitlar)
     const sonucMap = new Map(satirlar.filter((s) => !s.hata).map((s, idx) => [s.id, sonuc[idx]]))
     setSatirlar((liste) =>
@@ -365,6 +367,7 @@ function TopluModal({ k, kullanici, onKapat }: { k: Kapsam; kullanici: string; o
     setSonuclandi(true)
     const ok = sonuc.filter((r) => r.ok).length
     logEkle({ tarih: new Date().toISOString(), kullanici, islem: 'Toplu çalışan eklendi (firma portalı)', kayit: `${ok}/${sonuc.length} kayıt · ${k.firma?.unvan}` })
+    bildirimGonder({ hedef: 'osgb', ton: 'amber', baslik: 'Firma toplu çalışan ekledi', detay: `${ok} çalışan · ${k.firma?.unvan} · eğitim ataması bekliyor`, to: '/panel/personeller' })
     toast.success(`${ok} çalışan oluşturuldu`)
   }
 

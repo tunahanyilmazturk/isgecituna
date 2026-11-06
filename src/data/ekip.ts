@@ -2,6 +2,13 @@ import type { PillTone } from '@/components/pill'
 import type { OlayEk } from '@/data/olaylar'
 import type { FirmaIslem } from '@/data/firmalar'
 import { TODAY } from '@/data/dashboard'
+import {
+  DEMO_SIFRE_OZETI,
+  DSP2026_SIFRE_OZETI,
+  ISG2026_SIFRE_OZETI,
+  MUDUR2026_SIFRE_OZETI,
+  SAHA2026_SIFRE_OZETI,
+} from '@/data/sifre-seed'
 
 export const BUGUN = TODAY
 
@@ -68,7 +75,7 @@ export interface KullaniciHesap {
   ad?: string // personel kaydı yoksa görünen isim
   kullaniciAdi: string
   eposta: string
-  sifreHash?: string // düz metin asla saklanmaz (demo: FNV-1a hash; backend'de bcrypt)
+  sifreHash?: string // düz metin asla saklanmaz (PBKDF2-SHA256, bkz. lib/sifre.ts)
   rol: RolAdi
   /** Kullanıcıya özel izin anahtarları — atanmamışsa rol şablonundan türetilir */
   izinler?: string[]
@@ -280,16 +287,6 @@ export const initialsOf = (u: Pick<EkipUye, 'ad' | 'soyad'>) =>
 export const hesapGorunenAd = (h: KullaniciHesap, uyeler: EkipUye[]) => {
   const p = uyeler.find((u) => u.id === h.personelId)
   return p ? adSoyad(p) : (h.ad ?? h.kullaniciAdi)
-}
-
-/** FNV-1a — demo hash; backend'de bcrypt/argon2 kullanılacak */
-export const sifreHashle = (s: string) => {
-  let h = 0x811c9dc5
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i)
-    h = Math.imul(h, 0x01000193)
-  }
-  return `fnv1a$${(h >>> 0).toString(16)}`
 }
 
 export const gorevTone: Record<GorevTuru, PillTone> = {
@@ -611,7 +608,7 @@ export const hesapSeed: KullaniciHesap[] = [
     personelId: 'PRS-01',
     kullaniciAdi: 'yilmazturk',
     eposta: 't.yilmazturk@vegaosgb.com.tr',
-    sifreHash: sifreHashle('123456'),
+    sifreHash: DEMO_SIFRE_OZETI,
     rol: 'Sistem Yöneticisi',
     durum: 'Aktif',
     sonGiris: '2026-11-04T08:42:00',
@@ -622,7 +619,7 @@ export const hesapSeed: KullaniciHesap[] = [
     personelId: 'PRS-02',
     kullaniciAdi: 'akaya',
     eposta: 'a.kaya@vegaosgb.com.tr',
-    sifreHash: sifreHashle('isg2026'),
+    sifreHash: ISG2026_SIFRE_OZETI,
     rol: 'İş Güvenliği Uzmanı',
     durum: 'Aktif',
     sonGiris: '2026-11-03T16:20:00',
@@ -644,7 +641,7 @@ export const hesapSeed: KullaniciHesap[] = [
     personelId: 'PRS-06',
     kullaniciAdi: 'kunal',
     eposta: 'k.unal@vegaosgb.com.tr',
-    sifreHash: sifreHashle('dsp2026'),
+    sifreHash: DSP2026_SIFRE_OZETI,
     rol: 'DSP / Hemşire',
     durum: 'Aktif',
     sonGiris: '2026-11-02T07:55:00',
@@ -655,7 +652,7 @@ export const hesapSeed: KullaniciHesap[] = [
     personelId: 'PRS-09',
     kullaniciAdi: 'oyildiz',
     eposta: 'o.yildiz@vegaosgb.com.tr',
-    sifreHash: sifreHashle('mudur2026'),
+    sifreHash: MUDUR2026_SIFRE_OZETI,
     rol: 'Kurum Müdürü',
     durum: 'Aktif',
     sonGiris: '2026-11-04T09:00:00',
@@ -666,7 +663,7 @@ export const hesapSeed: KullaniciHesap[] = [
     personelId: 'PRS-10',
     kullaniciAdi: 'mdemir',
     eposta: 'm.demir@vegaosgb.com.tr',
-    sifreHash: sifreHashle('saha2026'),
+    sifreHash: SAHA2026_SIFRE_OZETI,
     rol: 'İdari Personel',
     durum: 'Pasif',
     sonGiris: '2026-10-12T18:30:00',

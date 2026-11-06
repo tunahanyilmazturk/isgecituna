@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { guvenliDepo } from '@/lib/guvenli-depo'
 import { MODULLER, type Modul, type Rehber, type RehberDurum } from '@/data/rehber'
 
 export const gorselAnahtar = (rehberId: string, adimIdx: number) => `${rehberId}#${adimIdx}`
@@ -47,7 +48,7 @@ export const useRehberStore = create<RehberState>()(
           return { duzenlemeler }
         }),
     }),
-    { name: 'isghub-rehber' },
+    { name: 'isghub-rehber', storage: guvenliDepo },
   ),
 )
 

@@ -19,6 +19,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
+import { sifreHashle } from '@/lib/sifre'
 import { xlsxDosyaAdi, xlsxIndir } from '@/lib/excel'
 import { useIzin } from '@/lib/izin'
 import {
@@ -92,7 +93,7 @@ export default function PersonelTopluPage() {
     hesapOlustur: true,
     otoKul: true,
     sifreModu: 'tek',
-    varsayilanSifre: '123456',
+    varsayilanSifre: rastgeleSifre(),
     ilkGirisZorunlu: true,
     varsayilanFirma: '',
   })
@@ -363,9 +364,9 @@ export default function PersonelTopluPage() {
     for (let i = 0; i < hedefler.length; i += BATCH) {
       const parca = hedefler.slice(i, i + BATCH)
       const batchKul = new Set<string>()
-      const kayitlar: TopluKayit[] = parca.map(({ s }) => {
+      const kayitlar: (TopluKayit & { sifre: string })[] = await Promise.all(parca.map(async ({ s }) => {
         const h = s.hucre
-        const sifre = h.sifre.trim() || (ayarlar.sifreModu === 'farkli' ? rastgeleSifre() : ayarlar.varsayilanSifre || '123456')
+        const sifre = h.sifre.trim() || (ayarlar.sifreModu === 'farkli' ? rastgeleSifre() : ayarlar.varsayilanSifre || rastgeleSifre())
         const kul = h.kullaniciAdi.trim() || benzersizKullaniciAdi(kullaniciAdiUret(h.ad, h.soyad), (k) => kullaniciVar(k) || batchKul.has(k))
         batchKul.add(kul)
         const firma = firmaCoz(h.firma) ?? firmalar.find((f) => f.id === ayarlar.varsayilanFirma)
@@ -379,10 +380,11 @@ export default function PersonelTopluPage() {
           hesap: ayarlar.hesapOlustur,
           kullaniciAdi: kul,
           sifre,
+          sifreHash: await sifreHashle(sifre),
           sifreDegisimZorunlu: ayarlar.ilkGirisZorunlu,
           islemNotu: 'Toplu içe aktarma ile oluşturuldu',
         }
-      })
+      }))
       const sonuclar = topluOlusturBatch(kayitlar, kullaniciVar)
       sonuclar.forEach((sonuc, j) => {
         const k = kayitlar[j]

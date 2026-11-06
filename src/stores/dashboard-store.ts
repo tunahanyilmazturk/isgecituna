@@ -6,6 +6,7 @@
  */
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { guvenliDepo } from '@/lib/guvenli-depo'
 
 export const ANA_WIDGETLAR = [
   { id: 'kpi', ad: 'Genel durum göstergeleri' },
@@ -64,6 +65,6 @@ export const useDashboardStore = create<DashboardState>()(
         }),
       varsayilan: () => set({ gizli: [], anaSira: anaVarsayilan(), yanSira: yanVarsayilan() }),
     }),
-    { name: 'isghub-dashboard', version: 1 },
+    { name: 'isghub-dashboard', version: 1, storage: guvenliDepo },
   ),
 )

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
+import { sifreHashle } from '@/lib/sifre'
 import { usePersonelStore } from '@/stores/personeller-store'
 
 const inp =
@@ -53,17 +54,17 @@ export function IlkSifrePage() {
   const [s1, setS1] = useState('')
   const [s2, setS2] = useState('')
 
-  const kaydet = () => {
+  const kaydet = async () => {
     if (s1.length < 6) return toast.error('Şifre en az 6 karakter olmalı')
     if (s1 !== s2) return toast.error('Şifreler eşleşmiyor')
     if (!hesap) return
-    sifreDegistir(hesap.id, s1)
+    sifreDegistir(hesap.id, await sifreHashle(s1))
     toast.success('Şifreniz güncellendi')
     navigate('/portal', { replace: true })
   }
 
   return (
-    <Kabuk adim="İlk Giriş — 1/2">
+    <Kabuk adim="İlk Giriş — 1/3">
       <div className="mb-6 flex size-12 items-center justify-center rounded-2xl bg-amber-500/10">
         <KeyRoundIcon className="size-6 text-amber-500" />
       </div>
@@ -102,6 +103,54 @@ export function IlkSifrePage() {
   )
 }
 
+/** Adım 3 — iletişim telefonu: katılımcı kaydında opsiyonel, uygulamaya ilk girişte zorunlu */
+export function TelefonPage() {
+  const navigate = useNavigate()
+  const user = useAuthStore((s) => s.user)
+  const personel = usePersonelStore((s) => s.personeller.find((p) => p.id === user?.personelId))
+  const personelGuncelle = usePersonelStore((s) => s.personelGuncelle)
+  const [telefon, setTelefon] = useState('')
+  const gecerli = telefon.replace(/\D/g, '').length >= 10
+
+  const kaydet = () => {
+    if (!personel || !gecerli) return
+    personelGuncelle(personel.id, { telefon: telefon.trim() })
+    toast.success('Telefon numaranız kaydedildi')
+    navigate('/portal', { replace: true })
+  }
+
+  return (
+    <Kabuk adim="İlk Giriş — 3/3">
+      <div className="mb-6 flex size-12 items-center justify-center rounded-2xl bg-amber-500/10">
+        <ShieldCheckIcon className="size-6 text-amber-500" />
+      </div>
+      <h1 className="text-xl font-semibold">İletişim telefonunuzu kaydedin</h1>
+      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+        Eğitim ve sertifika bildirimleri için telefon numaranız gereklidir. Kaydetmeden portalı kullanamazsınız.
+      </p>
+      <div className="mt-6 space-y-4">
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-muted-foreground" htmlFor="ilk-telefon">Telefon</label>
+          <input
+            id="ilk-telefon"
+            type="tel"
+            autoFocus
+            value={telefon}
+            onChange={(e) => setTelefon(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && kaydet()}
+            className={inp}
+            placeholder="05xx xxx xx xx"
+          />
+          {telefon && !gecerli && <p className="mt-1.5 text-xs text-red-500">Telefon numarası en az 10 haneli olmalı.</p>}
+        </div>
+        <Button className="h-11 w-full" disabled={!gecerli || !personel} onClick={kaydet}>
+          <CheckCircle2Icon /> Kaydet ve devam et
+        </Button>
+      </div>
+    </Kabuk>
+  )
+}
+
 /** Adım 2 — KVKK aydınlatma metni teyidi (aydınlatma ≠ açık rıza) */
 export function KvkkOnayPage() {
   const navigate = useNavigate()
@@ -127,7 +176,7 @@ export function KvkkOnayPage() {
   }
 
   return (
-    <Kabuk adim="İlk Giriş — 2/2">
+    <Kabuk adim="İlk Giriş — 2/3">
       <div className="mb-6 flex size-12 items-center justify-center rounded-2xl bg-amber-500/10">
         <ScrollTextIcon className="size-6 text-amber-500" />
       </div>

@@ -33,6 +33,7 @@ import {
   type SertifikaBasvuru,
 } from '@/data/sertifikalar'
 import { TODAY } from '@/data/dashboard'
+import { egitimSuresiDakika } from '@/data/egitimler'
 import { personelAd, usePersonelStore } from '@/stores/personeller-store'
 import { useFirmalarStore } from '@/stores/firmalar-store'
 import { useEgitimlerStore } from '@/stores/egitimler-store'
@@ -461,7 +462,7 @@ function BasvuruDetay({
           <div className="rounded-xl border bg-card p-4">
             <p className="text-sm font-semibold">{e?.baslik ?? '—'}</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {e?.kategori} · v{sv?.no ?? '?'} · {e?.sureDakika} dk · Atama {a?.id} (son {a?.sonTarih})
+              {e?.kategori} · v{sv?.no ?? '?'} · {e ? egitimSuresiDakika(e) : '—'} dk · Atama {a?.id} (son {a?.sonTarih})
             </p>
             <p className="mt-2 text-xs text-muted-foreground">{e?.aciklama}</p>
           </div>
@@ -614,7 +615,7 @@ function OnayModal({
     employee_id: p?.tc || undefined,
     company_name: useFirmalarStore.getState().firmalar.find((f) => f.id === usePersonelStore.getState().atamalar.find((a) => a.id === b.atamaId)?.firmaId)?.unvan ?? '',
     training_name: e?.baslik ?? '',
-    training_duration: e ? sureEtiketi(e.sureDakika) : '—',
+    training_duration: e ? sureEtiketi(egitimSuresiDakika(e)) : '—',
     completion_date: tarihEtiketi(b.tamamlanmaTarihi),
     issue_date: tarihEtiketi(tarih),
     expiry_date: gecerlilik ? tarihEtiketi(gecerlilik) : 'Süresiz',
@@ -627,7 +628,7 @@ function OnayModal({
     training_type: egitimTuru || undefined,
     training_instructors: egiticiMetni || undefined,
     training_topics: konular,
-    training_total_duration: e ? sureEtiketi(e.sureDakika) : '—',
+    training_total_duration: e ? sureEtiketi(egitimSuresiDakika(e)) : '—',
     approver_name: kullanici,
   }
 
@@ -727,9 +728,9 @@ function OnayModal({
               </Alan>
             </div>
           </div>
-          {konuSureToplami > 0 && e && konuSureToplami !== e.sureDakika && (
+          {konuSureToplami > 0 && e && konuSureToplami !== egitimSuresiDakika(e) && (
             <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
-              Eğitim planı {sureEtiketi(e.sureDakika)}, içerik süreleri toplamı {sureEtiketi(konuSureToplami)}. PDF her iki kayıt değerini ayrı ayrı gösterecek; süreleri içerik kaydında güncellemeniz önerilir.
+              Eğitim planı {sureEtiketi(egitimSuresiDakika(e))}, içerik süreleri toplamı {sureEtiketi(konuSureToplami)}. PDF her iki kayıt değerini ayrı ayrı gösterecek; süreleri içerik kaydında güncellemeniz önerilir.
             </p>
           )}
           <Alan label="Onay notu (opsiyonel)">

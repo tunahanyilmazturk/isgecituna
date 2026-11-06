@@ -24,6 +24,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Alan, Bolum, EkIkon, Sec } from '@/components/form-bits'
 import { cn } from '@/lib/utils'
+import { sifreHashle } from '@/lib/sifre'
 import { useEkipStore } from '@/stores/ekip-store'
 import {
   CALISMA_TIPLERI,
@@ -31,7 +32,6 @@ import {
   GOREV_TURLERI,
   PERSONEL_DURUMLARI,
   ROL_ADLARI,
-  sifreHashle,
   type EkipUye,
   type GorevTuru,
 } from '@/data/ekip'
@@ -277,7 +277,7 @@ export function EkipFormDrawer({
 
   /* -------------------------------- Kaydet -------------------------------- */
 
-  const kaydet = () => {
+  const kaydet = async () => {
     const h = dogrula()
     setHata(h)
     if (h.length) return
@@ -326,7 +326,7 @@ export function EkipFormDrawer({
         personelId: hedef.id,
         kullaniciAdi: (kullaniciAdi.trim() || oneriKul).trim(),
         eposta: (hesapEposta || f.eposta).trim(),
-        sifreHash: davet ? undefined : sifreHashle(sifre),
+        sifreHash: davet ? undefined : await sifreHashle(sifre),
         rol: rol as Parameters<typeof hesapOlustur>[0]['rol'],
         durum: davet ? 'Davet Bekliyor' : 'Aktif',
         davetTarihi: undefined,

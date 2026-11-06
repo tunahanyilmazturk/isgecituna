@@ -1,4 +1,4 @@
-export const TODAY = '2026-11-04'
+export const TODAY = '2026-11-06'
 
 export type Oncelik = 'kritik' | 'yuksek' | 'orta' | 'dusuk'
 export type OlayTuru = 'Ramak kala' | 'İlk yardım' | 'Kayıp gün'

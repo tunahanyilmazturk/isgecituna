@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { guvenliDepo } from '@/lib/guvenli-depo'
 import { TODAY } from '@/data/dashboard'
 import { yuksekteEgitim } from '@/data/egitim-yuksekte'
 import { temelIsgSurum4 } from '@/data/egitim-temel-isg'
@@ -22,6 +23,8 @@ const yeniId = (prefix: string) => `${prefix}-${Date.now().toString(36)}${(seq++
 
 /** Zorunlu içeriklerin tamamını ve sınav durumunu değerlendirip eğitim durumunu üretir */
 export const durumHesapla = (surum: EgitimSurum, il: EgitimIlerleme): IlerlemeDurum => {
+  // Onaylanmış (Tamamlandı) kayıt, içerik yeniden açıldığında "Onay Bekliyor"a geri dönmez
+  if (il.durum === 'Tamamlandı') return 'Tamamlandı'
   const zorunlular = surum.bolumler.flatMap((b) => b.icerikler).filter((i) => i.zorunlu)
   const tamam = zorunlular.every((i) => il.icerikler[i.id]?.tamamlandi)
   if (!tamam) return zorunlular.some((i) => il.icerikler[i.id]) ? 'Devam Ediyor' : 'Başlamadı'
@@ -52,6 +55,8 @@ interface EgitimlerState {
   icerikIlerlemeKaydet: (hesapId: string, egitimId: string, icerikId: string, patch: Partial<IcerikIlerleme>, atamaId?: string, surumId?: string) => void
   denemeEkle: (hesapId: string, egitimId: string, deneme: Omit<SinavDeneme, 'no'>, atamaId?: string, surumId?: string) => boolean
   onSinavKaydet: (hesapId: string, egitimId: string, kayit: OnSinavKayit, atamaId?: string, surumId?: string) => void
+  /** İSG onayı verildiğinde "Onay Bekliyor" kaydını "Tamamlandı" yapar */
+  ilerlemeTamamla: (hesapId: string, atamaId: string) => void
 }
 
 export const useEgitimlerStore = create<EgitimlerState>()(
@@ -214,6 +219,15 @@ export const useEgitimlerStore = create<EgitimlerState>()(
           return { ilerlemeler }
         }),
 
+      ilerlemeTamamla: (hesapId, atamaId) =>
+        set((s) => ({
+          ilerlemeler: s.ilerlemeler.map((il) =>
+            il.hesapId === hesapId && il.atamaId === atamaId && il.durum === 'Onay Bekliyor'
+              ? { ...il, durum: 'Tamamlandı' as const }
+              : il,
+          ),
+        })),
+
       onSinavKaydet: (hesapId, egitimId, kayit, atamaId, surumId) => {
         get().ilerlemeGetir(hesapId, egitimId, atamaId, surumId)
         set((s) => ({
@@ -256,6 +270,7 @@ export const useEgitimlerStore = create<EgitimlerState>()(
     }),
     {
       name: 'isghub-egitimler',
+      storage: guvenliDepo,
       partialize: (s) => ({ egitimler: s.egitimler, ilerlemeler: s.ilerlemeler }),
       version: 8,
       migrate: (persistedState, version) => {

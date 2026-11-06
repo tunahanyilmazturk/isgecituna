@@ -13,6 +13,10 @@ export function RequireAuth() {
   const kvkkBekliyor = usePersonelStore((s) =>
     portalHesap ? s.kvkkBekliyor(portalHesap.id) : false,
   )
+  // Katılımcının kişi kaydı — telefon zorunluluğu ilk girişte kontrol edilir
+  const portalKisi = usePersonelStore((s) =>
+    user?.tip === 'portal' ? s.personeller.find((p) => p.id === user.personelId) : undefined,
+  )
   // Firma yetkilisi hesabı — durum değişikliği anında yansır
   const yetkili = useFirmaPortalStore((s) =>
     user?.tip === 'firma' ? s.yetkililer.find((y) => y.id === user.yetkiliId) : undefined,
@@ -52,8 +56,13 @@ export function RequireAuth() {
       return <Navigate to="/ilk-giris/sifre" replace />
     if (!sifreZorunlu && kvkkBekliyor && pathname !== '/ilk-giris/kvkk')
       return <Navigate to="/ilk-giris/kvkk" replace />
+    // Telefon numarası katılımcı girişinde zorunludur (kayıtta opsiyonel olabilir)
+    const telefonEksik = !portalKisi?.telefon?.trim()
+    if (!sifreZorunlu && !kvkkBekliyor && telefonEksik && pathname !== '/ilk-giris/telefon')
+      return <Navigate to="/ilk-giris/telefon" replace />
     // Onboarding tamamlandıysa onboarding sayfalarına dönme
-    if (onboardingMi && !sifreZorunlu && !kvkkBekliyor)
+    const onboardingBitti = !sifreZorunlu && !kvkkBekliyor && !telefonEksik
+    if (onboardingMi && onboardingBitti)
       return <Navigate to="/portal" replace />
     // Yönetim paneli — yalnız eğitim oynatıcı rotası açık
     const oynaticiMi = /^\/panel\/egitimler\/[^/]+\/oynat/.test(pathname)

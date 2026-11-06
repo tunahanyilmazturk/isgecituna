@@ -40,6 +40,8 @@ import { Alan, Sec } from '@/components/form-bits'
 import { cn } from '@/lib/utils'
 import { durumRenk, PERSONEL_DURUMLARI, tcMaske, type FirmaPersonel, type PersonelDurum } from '@/data/personeller'
 import { xlsxDosyaAdi, xlsxIndir } from '@/lib/excel'
+import { sifreHashle } from '@/lib/sifre'
+import { rastgeleSifreUret } from '@/lib/kullanici-adi'
 import { personelAd, usePersonelStore } from '@/stores/personeller-store'
 import { useFirmalarStore } from '@/stores/firmalar-store'
 import { useEgitimlerStore } from '@/stores/egitimler-store'
@@ -381,8 +383,8 @@ function PersonelForm({ duzenle, onKapat }: { duzenle?: FirmaPersonel; onKapat: 
   // Kullanıcı adı ad/soyaddan otomatik türer; kullanıcı elle değiştirirse elle girilen değer kullanılır.
   const [kulManuel, setKulManuel] = useState<string | null>(null)
   const kul = kulManuel ?? kullaniciOner(f.ad, f.soyad)
-  const [sifre, setSifre] = useState('123456')
-  const [sifreTekrar, setSifreTekrar] = useState('123456')
+  const [sifre, setSifre] = useState(() => rastgeleSifreUret())
+  const [sifreTekrar, setSifreTekrar] = useState(sifre)
   const [sifreGoster, setSifreGoster] = useState(true)
   const firmaDegisti = !!duzenle && f.firmaId !== duzenle.firmaId
 
@@ -396,7 +398,7 @@ function PersonelForm({ duzenle, onKapat }: { duzenle?: FirmaPersonel; onKapat: 
     return null
   }
 
-  const kaydet = () => {
+  const kaydet = async () => {
     if (!f.firmaId) return toast.error('Firma seçimi zorunlu')
     if (!f.ad.trim() || !f.soyad.trim()) return toast.error('Ad ve soyad zorunlu')
     if (f.eposta && epostaAlinmi(f.eposta, duzenle?.id)) return toast.error('Bu e-posta başka bir kayıtta kullanılıyor')
@@ -413,7 +415,7 @@ function PersonelForm({ duzenle, onKapat }: { duzenle?: FirmaPersonel; onKapat: 
       const yeniPersonel = personelEkle(f)
       if (hesapAcik) {
         try {
-          hesapOlustur(yeniPersonel.id, kul.trim(), 'sifre', sifre)
+          hesapOlustur(yeniPersonel.id, kul.trim(), 'sifre', await sifreHashle(sifre))
           toast.success('Personel ve giriş hesabı oluşturuldu')
         } catch (e) {
           toast.error(e instanceof Error ? `Personel eklendi, hesap açılamadı: ${e.message}` : 'Personel eklendi, hesap açılamadı')

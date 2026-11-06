@@ -9,6 +9,7 @@
  */
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { guvenliDepo } from '@/lib/guvenli-depo'
 import {
   aksiyonSeed,
   puanHesap,
@@ -307,6 +308,7 @@ export const useRiskStore = create<RiskState>()(
     }),
     {
       name: 'isghub-risk',
+      storage: guvenliDepo,
       version: 1,
       migrate: (p) => {
         const s = (p ?? {}) as Partial<RiskState>

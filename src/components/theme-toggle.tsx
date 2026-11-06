@@ -1,11 +1,11 @@
 import { flushSync } from 'react-dom'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/lib/tema-context'
 import { MoonIcon, SunIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const { resolvedTheme = 'light', setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
 
   const toggleTheme = (e: React.MouseEvent<HTMLButtonElement>) => {
     const next = resolvedTheme === 'dark' ? 'light' : 'dark'

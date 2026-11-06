@@ -25,7 +25,8 @@ import { Input } from '@/components/ui/input'
 import { Alan } from '@/components/form-bits'
 import { cn } from '@/lib/utils'
 import { rastgeleSifre } from '@/lib/toplu'
-import { sifreHashle } from '@/data/ekip'
+import { sifreHashle } from '@/lib/sifre'
+import { bildirimGonder } from '@/stores/bildirim-store'
 import {
   FIRMA_IZINLERI,
   yetkiliDurumRenk,
@@ -280,9 +281,10 @@ function YetkiliForm({
   const gecerli = f.ad.trim() && f.soyad.trim() && f.kullaniciAdi.trim()
   const kulCakisiyor = f.kullaniciAdi && f.kullaniciAdi !== mevcut?.kullaniciAdi && kullaniciAlinmi(f.kullaniciAdi)
 
-  const kaydet = () => {
+  const kaydet = async () => {
     if (mevcut) {
       yetkiliGuncelle(mevcut.id, { ...f, izinler }, 'Bilgiler güncellendi', admin)
+      bildirimGonder({ hedef: 'osgb', ton: 'amber', baslik: 'Firma yetkilisi bilgileri değiştirildi', detay: `${f.ad} ${f.soyad} · ${firma.unvan} · ${admin}`, to: `/panel/firmalar/${firma.id}` })
       toast.success('Yetkili güncellendi')
       return onKapat()
     }
@@ -295,7 +297,7 @@ function YetkiliForm({
         telefon: f.telefon.trim(),
         gorev: f.gorev.trim(),
         kullaniciAdi: f.kullaniciAdi.trim(),
-        sifreHash: f.yontem === 'sifre' ? sifreHashle(gecici) : undefined,
+        sifreHash: f.yontem === 'sifre' ? await sifreHashle(gecici) : undefined,
         sifreDegisimZorunlu: f.yontem === 'sifre',
         davetToken: f.yontem === 'davet' ? `dvt-${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}` : undefined,
         davetBitis: f.yontem === 'davet' ? new Date(Date.now() + 7 * 86400000).toISOString() : undefined,
@@ -304,6 +306,7 @@ function YetkiliForm({
       },
       admin,
     )
+    bildirimGonder({ hedef: 'osgb', ton: 'amber', baslik: 'Firma yetkilisi eklendi', detay: `${f.ad} ${f.soyad} · ${firma.unvan} · ${admin}`, to: `/panel/firmalar/${firma.id}` })
     const yeni = useFirmaPortalStore.getState().yetkililer[0]
     if (f.yontem === 'davet' && yeni?.davetToken) {
       navigator.clipboard.writeText(`${location.origin}/davet/${yeni.davetToken}`)
