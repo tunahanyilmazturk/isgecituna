@@ -94,7 +94,7 @@ export default function DashboardPage() {
         {/* Yedek zemin (görsel yoksa) → görsel → okunurluk için yarı saydam koyu katman */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,158,11,0.35),transparent_55%),linear-gradient(120deg,#18181b,#09090b)]" />
         <img
-          src="/images/osgbhub-dashboard-banner.png"
+          src="/images/osgbhub-dashboard-banner.jpg"
           alt=""
           aria-hidden="true"
           onError={(e) => (e.currentTarget.style.display = 'none')}

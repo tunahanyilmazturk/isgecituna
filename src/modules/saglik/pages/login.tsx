@@ -12,7 +12,6 @@ import {
   XIcon,
 } from 'lucide-react'
 import { Button } from '@saglik/components/ui/button'
-import { Checkbox } from '@saglik/components/ui/checkbox'
 import { Input } from '@saglik/components/ui/input'
 import { Label } from '@saglik/components/ui/label'
 import { cn } from '@saglik/lib/utils'
@@ -47,7 +46,7 @@ type YasalTur = 'gizlilik' | 'kvkk' | 'kosullar'
 const YASAL: Record<YasalTur, { baslik: string; govde: string }> = {
   gizlilik: {
     baslik: 'Gizlilik Bildirimi',
-    govde: `osgbhub olarak gizliliğinize önem veriyoruz. Bu platformda tutulan veriler, mobil sağlık taraması hizmetlerinin yürütülmesi amacıyla, hesabınızın bağlı olduğu kuruluşun talimatları doğrultusunda işlenir.
+    govde: `mobilhub olarak gizliliğinize önem veriyoruz. Bu platformda tutulan veriler, mobil sağlık taraması hizmetlerinin yürütülmesi amacıyla, hesabınızın bağlı olduğu kuruluşun talimatları doğrultusunda işlenir.
 
 Giriş sayfasında tarayıcınızda yalnızca oturum ve görünüm tercihi gibi zorunlu teknik bilgiler saklanır; pazarlama veya üçüncü taraf izleme amaçlı çerez kullanılmaz.
 
@@ -59,7 +58,7 @@ Kişisel verilerin işlenmesine ilişkin ayrıntılı hukuki çerçeve için KVK
   },
   kosullar: {
     baslik: 'Kullanım Koşulları',
-    govde: `osgbhub, mobil sağlık taramalarının yönetimi için kuruluşlara sunulan bir yazılım hizmetidir.
+    govde: `mobilhub, mobil sağlık taramalarının yönetimi için kuruluşlara sunulan bir yazılım hizmetidir.
 
 Hesabınız, bağlı olduğunuz kuruluş tarafından oluşturulur ve yetkilendirilir. Platformu yalnızca size tanımlanan yetki kapsamında kullanabilirsiniz; hesap bilgilerinizi üçüncü kişilerle paylaşamazsınız.
 
@@ -75,7 +74,6 @@ export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [remember, setRemember] = useState(true)
   const [hata, setHata] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [demoYuklenen, setDemoYuklenen] = useState<DemoPortal | null>(null)
@@ -131,10 +129,14 @@ export default function LoginPage() {
       {/* Yedek zemin: görsel yoksa marka renkli gradyan görünür */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,158,11,0.25),transparent_60%),linear-gradient(160deg,#1c1a16,#0a0a0a)]" />
       <img
-        src="/images/osgbhub-giris-gorsel.png"
+        src="/images/osgbhub-giris-gorsel.jpg"
         alt=""
         aria-hidden="true"
-        onError={(e) => (e.currentTarget.style.display = 'none')}
+        onError={(e) => {
+          // Özel görsel yoksa yedek arka plan görseli kullanılır
+          if (!e.currentTarget.src.endsWith("/brand/mobilhub-hero.png")) e.currentTarget.src = "/brand/mobilhub-hero.png";
+          else e.currentTarget.style.display = "none";
+        }}
         className="absolute inset-0 size-full object-cover object-center"
       />
       <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-black/10" />
@@ -142,7 +144,7 @@ export default function LoginPage() {
       {/* ------------------------------- Sağ: giriş ------------------------------ */}
       <div className="relative z-10 flex min-h-svh flex-col px-6 sm:px-10">
         <div className="absolute top-6 left-6 flex items-center gap-3 text-white sm:top-8 sm:left-10">
-          <img src="/images/osgbhub-logo.svg" alt="osgbhub" className="h-9 w-auto" />
+          <img src="/brand/mobilhub-logo-koyu.svg" alt="mobilhub" className="h-9 w-auto" />
         </div>
 
         <div className="flex flex-1 items-center justify-start pt-24 pb-8 sm:pt-28 lg:pt-20">
@@ -151,7 +153,6 @@ export default function LoginPage() {
               <h1 className="text-2xl font-semibold tracking-tight">Tekrar hoş geldiniz</h1>
               <p className="text-[13px] leading-relaxed text-muted-foreground">
                 Hesabınıza giriş yapın — yönetim paneline yönlendirilirsiniz.
-                girişten kendi portalına yönlendirilir.
               </p>
             </div>
 
@@ -212,11 +213,6 @@ export default function LoginPage() {
                   </p>
                 )}
               </div>
-
-              <label className="flex w-fit cursor-pointer items-center gap-2 text-[13px] select-none">
-                <Checkbox checked={remember} onCheckedChange={setRemember} />
-                Beni hatırla
-              </label>
 
               <Button type="submit" size="lg" className="h-10.5 w-full text-[15px]" disabled={loading}>
                 {loading ? (
@@ -282,7 +278,7 @@ export default function LoginPage() {
         </div>
 
         <p className="pb-5 text-center text-[11px] text-white/70">
-          © 2026 osgbhub
+          © 2026 mobilhub
         </p>
       </div>
 
@@ -295,7 +291,7 @@ export default function LoginPage() {
               Şifre sıfırlama
             </Dialog.Title>
             <Dialog.Description className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Şifrenizi sıfırlamak için kuruluşunuzdaki yöneticinize veya osgbhub destek
+              Şifrenizi sıfırlamak için kuruluşunuzdaki yöneticinize veya mobilhub destek
               ekibine başvurun. Size iletilen davet bağlantısıyla yeni şifrenizi
               belirleyebilirsiniz.
             </Dialog.Description>

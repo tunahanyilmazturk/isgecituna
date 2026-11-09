@@ -14,7 +14,6 @@ import {
   XIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
@@ -90,7 +89,6 @@ export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [remember, setRemember] = useState(true)
   const [hata, setHata] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [demoYuklenen, setDemoYuklenen] = useState<DemoPortal | null>(null)
@@ -225,11 +223,6 @@ export default function LoginPage() {
                   </p>
                 )}
               </div>
-
-              <label className="flex w-fit cursor-pointer items-center gap-2 text-[13px] select-none">
-                <Checkbox checked={remember} onCheckedChange={setRemember} />
-                Beni hatırla
-              </label>
 
               <Button type="submit" size="lg" className="h-10.5 w-full text-[15px]" disabled={loading}>
                 {loading ? (

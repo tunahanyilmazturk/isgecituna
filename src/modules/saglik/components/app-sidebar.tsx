@@ -106,7 +106,7 @@ export function AppSidebarContent({
               </span>
             ) : (
               <span className="min-w-0">
-                <img src="/images/osgbhub-logo.svg" alt="osgbhub" className="h-7 w-auto" />
+                <img src="/brand/mobilhub-logo-koyu.svg" alt="mobilhub" className="h-7 w-auto" />
                 <span className="block truncate text-[10px] font-medium text-zinc-500">
                   {kurum.kisaAd || kurum.unvan}
                 </span>
