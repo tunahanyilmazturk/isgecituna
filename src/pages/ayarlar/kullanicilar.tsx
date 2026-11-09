@@ -27,7 +27,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Alan } from '@/components/form-bits'
-import { selectCls } from '@/components/form-bits'
+import { selectCls } from '@/components/olaylar/olay-form-utils'
 import { AyarBaslik } from '@/components/ayarlar/settings-bits'
 import { adSoyad, hesapGorunenAd, type KullaniciHesap } from '@/data/ekip'
 import { izinSayisi } from '@/lib/izin'

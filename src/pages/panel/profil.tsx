@@ -68,7 +68,11 @@ export default function ProfilPage() {
   }
 
   const sifirla = () => setForm(current)
-  const hesapTuru = 'Yönetim paneli'
+  const hesapTuru = user?.tip === 'firma'
+    ? 'Firma yetkilisi'
+    : user?.tip === 'portal'
+      ? 'Çalışan portalı'
+      : 'Yönetim paneli'
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-5 pb-4">

@@ -1,5 +1,4 @@
-import { BUGUN as TODAY } from '@/data/saglik'
-import { EKIPMAN_TURLERI, HIZMET_TURLERI, TEST_KATEGORILERI } from '@/data/saglik'
+import { TODAY } from '@/data/dashboard'
 
 export const BUGUN = TODAY
 
@@ -73,13 +72,13 @@ export interface BildirimTercih {
 }
 
 export const bildirimSeed: BildirimTercih[] = [
-  { tur: 'Teklif onaylandı / reddedildi', uygulama: true, eposta: true, sms: false },
-  { tur: 'Tarama planlandı (firma bilgilendirme)', uygulama: true, eposta: true, sms: false },
-  { tur: 'Tarama yaklaşıyor (1 gün önce)', uygulama: true, eposta: false, sms: true },
-  { tur: 'Tarama tamamlandı', uygulama: true, eposta: true, sms: false },
-  { tur: 'Kalibrasyon bitiyor', uygulama: true, eposta: true, sms: false },
-  { tur: 'Ekipman arıza / bakım', uygulama: true, eposta: true, sms: false },
-  { tur: 'Teklif geçerlilik süresi doluyor', uygulama: true, eposta: true, sms: false },
+  { tur: 'Sözleşme bitiş uyarıları', uygulama: true, eposta: true, sms: false },
+  { tur: 'Eksik görevlendirme', uygulama: true, eposta: true, sms: false },
+  { tur: 'Firma bilgi eksikleri', uygulama: true, eposta: false, sms: false },
+  { tur: 'Yeni olay bildirimi', uygulama: true, eposta: true, sms: true },
+  { tur: 'Görev / aksiyon ataması', uygulama: true, eposta: true, sms: false },
+  { tur: 'Görev gecikme uyarısı', uygulama: true, eposta: true, sms: false },
+  { tur: 'Belge geçerlilik uyarısı', uygulama: true, eposta: true, sms: false },
   { tur: 'Kullanıcı daveti', uygulama: false, eposta: true, sms: false },
   { tur: 'Güvenlik uyarıları', uygulama: true, eposta: true, sms: true },
 ]
@@ -136,11 +135,11 @@ export const basarisizSeed: BasarisizGiris[] = [
   { id: 'BG-03', kullaniciAdi: 'saydemir', tarih: '2026-10-28T09:12:00', ip: '88.241.12.44', neden: 'Hesap henüz aktif değil' },
 ]
 
-/* ------------------------- Rapor ve Belgeler ----------------------------- */
+/* ------------------------------- Belgeler ------------------------------- */
 
 export interface BelgeAyarlari {
   logoNotu: string
-  /** Belge (teklif/rapor) numara öneki — 'TKL-2026-000001' gibi */
+  /** Sertifika numarası öneki — 'SRT-2026-000001' gibi */
   sertifikaOnEk: string
   imzaGoster: boolean
   kaseGoster: boolean
@@ -152,11 +151,11 @@ export interface BelgeAyarlari {
 }
 
 export const belgeSeed: BelgeAyarlari = {
-  logoNotu: 'osgbhub-logo.svg',
-  sertifikaOnEk: 'TKL',
+  logoNotu: 'osgb-logo.svg',
+  sertifikaOnEk: 'SRT',
   imzaGoster: true,
   kaseGoster: true,
-  ustbilgi: 'Vega OSGB Hizmetleri A.Ş. — Mobil Sağlık Taramaları',
+  ustbilgi: 'Vega OSGB Hizmetleri A.Ş. — İş Sağlığı ve Güvenliği',
   altbilgi: 'Bu belge elektronik ortamda oluşturulmuştur. · www.vegaosgb.com.tr',
   sayfaBoyutu: 'A4',
   font: 'Geist',
@@ -173,14 +172,19 @@ export interface TanimGrup {
 }
 
 export const tanimSeed: TanimGrup[] = [
-  { key: 'hizmetler', label: 'Hizmet türleri', aciklama: 'Firmalara sunulan tarama hizmetleri (teklif ve taramalarda kullanılır)', degerler: [...HIZMET_TURLERI] },
-  { key: 'muayene', label: 'Muayene türleri', aciklama: 'Tarama nedenleri', degerler: ['İşe giriş', 'Periyodik', 'İşe dönüş', 'Aralıklı kontrol'] },
-  { key: 'test-kategorileri', label: 'Test kategorileri', aciklama: 'Testler sayfasındaki kategoriler', degerler: [...TEST_KATEGORILERI] },
-  { key: 'ekipman-turleri', label: 'Ekipman türleri', aciklama: 'Ekipman kaydında seçilen türler', degerler: [...EKIPMAN_TURLERI] },
-  { key: 'kdv', label: 'KDV oranları', aciklama: 'Faturalandırma oranları', degerler: ['%0', '%1', '%10', '%20'] },
+  { key: 'hizmetler', label: 'Hizmetler', aciklama: 'OSGB hizmet türleri', degerler: ['OSGB Tam Kapsam', 'OSGB Kısmi', 'Danışmanlık', 'Eğitim Paketi'] },
+  { key: 'tetkikler', label: 'Tetkikler', aciklama: 'Sağlık taraması tetkikleri', degerler: ['Hemogram', 'İşitme (Odyometri)', 'Solunum Fonksiyon', 'Görme', 'Akciğer Grafisi', 'İdrar Tahlili'] },
+  { key: 'muayeneler', label: 'Muayene Türleri', aciklama: 'İşyeri hekimi muayene türleri', degerler: ['İşe Giriş', 'Periyodik', 'İşe Dönüş', 'Aralıklı Kontrol'] },
+  { key: 'kdv', label: 'KDV Oranları', aciklama: 'Faturalandırma oranları', degerler: ['%0', '%1', '%10', '%20'] },
+  { key: 'nace', label: 'NACE Kodları', aciklama: 'Faaliyet kodları', degerler: ['25.11', '28.22', '41.20', '46.69', '55.10', '62.01', '81.21', '85.51'] },
+  { key: 'tehlike', label: 'Tehlike Sınıfları', aciklama: 'İşyeri tehlike sınıfları', degerler: ['Az Tehlikeli', 'Tehlikeli', 'Çok Tehlikeli'] },
+  { key: 'olay-turleri', label: 'Olay Türleri', aciklama: 'Olay bildirim türleri', degerler: ['İş Kazası', 'Ramak Kala', 'Tehlikeli Durum', 'Tehlikeli Davranış', 'Maddi Hasar'] },
+  { key: 'egitim-turleri', label: 'Eğitim Türleri', aciklama: 'Verilen eğitim kategorileri', degerler: ['Temel İSG', 'Yangın', 'Yüksekte Çalışma', 'Elektrik Güvenliği', 'Kimyasal Güvenlik', 'İlk Yardım'] },
+  { key: 'ekipman', label: 'Ekipman Türleri', aciklama: 'KKD ve ölçüm ekipmanları', degerler: ['Baret', 'İş Ayakkabısı', 'Eldiven', 'Göz Koruyucu', 'Kulak Koruyucu', 'Emniyet Kemeri'] },
+  { key: 'belge-kategorileri', label: 'Belge Kategorileri', aciklama: 'Doküman sınıflandırması', degerler: ['Sözleşme', 'Sertifika', 'Rapor', 'Form', 'Talimat', 'Prosedür'] },
 ]
 
-/* ------------------------------ Otomasyon ------------------------------- */
+/* ------------------------------ İş Akışı -------------------------------- */
 
 export interface OtomasyonKural {
   id: string
@@ -192,12 +196,12 @@ export interface OtomasyonKural {
 }
 
 export const otomasyonSeed: OtomasyonKural[] = [
-  { id: 'OTM-01', ad: 'Kalibrasyon hatırlatması', aciklama: 'Kalibrasyon bitişine 30 / 15 / 7 gün kala ekip sorumlusuna bildirim', tetikleyici: 'Tarih bazlı', islem: 'Bildirim gönder', aktif: true },
-  { id: 'OTM-02', ad: 'Teklif geçerlilik hatırlatması', aciklama: 'Gönderilmiş teklifin süresi dolmadan 7 gün önce teklif sorumlusuna bildirim', tetikleyici: 'Tarih bazlı', islem: 'Bildirim gönder', aktif: true },
-  { id: 'OTM-03', ad: 'Onaylanan teklif → tarama planı', aciklama: 'Teklif onaylanınca taramalar sayfasında "Planlandı" kaydı oluşturulur', tetikleyici: 'Teklif onaylandı', islem: 'Tarama oluştur', aktif: true },
-  { id: 'OTM-04', ad: 'Tarama tamamlandı bildirimi', aciklama: 'Tüm kişiler tamamlandığında firma yetkilisine bilgilendirme', tetikleyici: 'Tarama tamamlandı', islem: 'Bildirim gönder', aktif: true },
-  { id: 'OTM-05', ad: 'Ekipman arızası', aciklama: 'Ekipman "Arızalı" durumuna geçince planlı taramalardan çıkarılır ve sorumluya bildirilir', tetikleyici: 'Durum değişikliği', islem: 'Bildirim gönder', aktif: false },
-  { id: 'OTM-06', ad: 'Süresi dolan teklif', aciklama: 'Geçerlilik tarihi geçen teklifler otomatik "Reddedildi" olur', tetikleyici: 'Tarih bazlı', islem: 'Durum güncelle', aktif: false },
+  { id: 'OTM-01', ad: 'Sözleşme bitiş hatırlatması', aciklama: 'Bitime 30/15/7 gün kala bildirim', tetikleyici: 'Tarih bazlı', islem: 'Bildirim gönder', aktif: true },
+  { id: 'OTM-02', ad: 'Görev gecikme uyarısı', aciklama: 'Hedef tarihi geçen aksiyonlarda sorumluya bildirim', tetikleyici: 'Tarih bazlı', islem: 'Bildirim gönder', aktif: true },
+  { id: 'OTM-03', ad: 'Yeni olay ataması', aciklama: 'Yeni bildirilen olay firma uzmanına otomatik atanır', tetikleyici: 'Kayıt oluştu', islem: 'Sorumlu ata', aktif: true },
+  { id: 'OTM-04', ad: 'İnceleme onay adımı', aciklama: 'İş kazası kapanmadan önce müdür onayı istenir', tetikleyici: 'Durum değişikliği', islem: 'Onay iste', aktif: false },
+  { id: 'OTM-05', ad: 'Belge geçerlilik takibi', aciklama: 'Mesleki belge bitimine 30 gün kala bildirim', tetikleyici: 'Tarih bazlı', islem: 'Bildirim gönder', aktif: true },
+  { id: 'OTM-06', ad: 'Süresi dolan sözleşme', aciklama: 'Bitiş tarihi geçen sözleşmeler otomatik "Süresi Dolmuş" olur', tetikleyici: 'Tarih bazlı', islem: 'Durum güncelle', aktif: false },
 ]
 
 /* ---------------------------- Entegrasyonlar ----------------------------- */
@@ -212,20 +216,31 @@ export interface Entegrasyon {
 
 export const entegrasyonSeed: Entegrasyon[] = [
   {
-    key: 'e-nabiz',
-    ad: 'e-Nabız',
-    aciklama: 'Tarama sonuçlarının Sağlık Bakanlığı e-Nabız kaydına aktarımı için resmî yetkilendirme gerekir.',
-    durum: 'Yapılandırma Bekliyor',
+    key: 'isg-katip',
+    ad: 'İSG-KATİP',
+    aciklama: 'Çalışma Bakanlığı İSG-KATİP sistemi. Görevlendirme ve sözleşme bildirimleri için resmî API yetkilendirmesi gerekir.',
+    durum: 'Test Modu',
+    alanlar: [
+      { k: 'Entegrasyon modu', v: 'Test / Sandbox' },
+      { k: 'API durumu', v: 'Yetkilendirme bekleniyor' },
+      { k: 'Son senkron', v: '—' },
+    ],
+  },
+  {
+    key: 'ibys',
+    ad: 'İBYS',
+    aciklama: 'İşyeri Bildirge Sistemi. İşyeri bildirgeleri ve İSG profesyonel atamaları için resmî entegrasyon.',
+    durum: 'Bağlı Değil',
     alanlar: [
       { k: 'Entegrasyon modu', v: 'Kapalı' },
-      { k: 'API durumu', v: 'Yetkilendirme bekleniyor' },
+      { k: 'API durumu', v: 'Yapılandırılmadı' },
       { k: 'Son senkron', v: '—' },
     ],
   },
   {
     key: 'eposta',
     ad: 'E-posta Servisi (SMTP)',
-    aciklama: 'Davet, şifre sıfırlama, teklif ve tarama bildirim e-postaları.',
+    aciklama: 'Davet, şifre sıfırlama ve bildirim e-postaları.',
     durum: 'Yapılandırma Bekliyor',
     alanlar: [
       { k: 'SMTP sunucu', v: '—' },
@@ -236,21 +251,11 @@ export const entegrasyonSeed: Entegrasyon[] = [
   {
     key: 'sms',
     ad: 'SMS Servisi',
-    aciklama: 'Tarama hatırlatması ve kişisel bilgilendirme mesajları için SMS kanalı.',
+    aciklama: 'Kritik İSG bildirimleri için SMS kanalı.',
     durum: 'Bağlı Değil',
     alanlar: [
       { k: 'Sağlayıcı', v: '—' },
       { k: 'Durum', v: 'Yapılandırılmadı' },
-    ],
-  },
-  {
-    key: 'muhasebe',
-    ad: 'Muhasebe / e-Fatura',
-    aciklama: 'Onaylanan tekliflerin faturaya aktarımı.',
-    durum: 'Bağlı Değil',
-    alanlar: [
-      { k: 'Entegrasyon modu', v: 'Kapalı' },
-      { k: 'Son senkron', v: '—' },
     ],
   },
 ]
@@ -271,12 +276,12 @@ export interface AuditLog {
 export const auditSeed: AuditLog[] = [
   { id: 'LOG-001', tarih: '2026-11-04T08:42:00', kullanici: 'yilmazturk', islem: 'Oturum açıldı', kayit: 'USR-01', ip: '88.241.12.44' },
   { id: 'LOG-002', tarih: '2026-11-03T17:12:00', kullanici: 'yilmazturk', islem: 'İzin güncellendi', kayit: 'USR-02 (akaya)', eski: '34 izin', yeni: '36 izin', ip: '88.241.12.44' },
-  { id: 'LOG-003', tarih: '2026-11-03T16:44:00', kullanici: 'yilmazturk', islem: 'Teklif oluşturuldu', kayit: 'TKL-2026-002 · Ege Lojistik', ip: '88.241.12.44' },
-  { id: 'LOG-004', tarih: '2026-11-02T11:30:00', kullanici: 'oyildiz', islem: 'Tarama durumu güncellendi', kayit: 'TRM-04 · Marmara Tekstil', eski: 'Planlandı', yeni: 'Devam ediyor', ip: '85.110.30.7' },
-  { id: 'LOG-005', tarih: '2026-11-02T09:05:00', kullanici: 'yilmazturk', islem: 'Teklif onaylandı', kayit: 'TKL-2026-001 · Akdeniz Metal', ip: '88.241.12.44' },
+  { id: 'LOG-003', tarih: '2026-11-03T16:44:00', kullanici: 'yilmazturk', islem: 'Sözleşme oluşturuldu', kayit: 'KT-2026-112 · Nova Gıda', ip: '88.241.12.44' },
+  { id: 'LOG-004', tarih: '2026-11-02T11:30:00', kullanici: 'oyildiz', islem: 'Olay durumu güncellendi', kayit: 'OL-402', eski: 'İncelemede', yeni: 'Aksiyon Bekliyor', ip: '85.110.30.7' },
+  { id: 'LOG-005', tarih: '2026-11-02T09:05:00', kullanici: 'yilmazturk', islem: 'Görevlendirme eklendi', kayit: 'PRS-06 → FR-05', ip: '88.241.12.44' },
   { id: 'LOG-006', tarih: '2026-11-01T14:22:00', kullanici: 'yilmazturk', islem: 'Kullanıcı daveti gönderildi', kayit: 'saydemir@vegaosgb.com.tr', ip: '88.241.12.44' },
-  { id: 'LOG-007', tarih: '2026-10-30T16:00:00', kullanici: 'yilmazturk', islem: 'Ekipman kalibrasyonu güncellendi', kayit: 'EKP-03 · Spirometre SP-Pro', ip: '88.241.12.44' },
-  { id: 'LOG-008', tarih: '2026-10-30T10:15:00', kullanici: 'akaya', islem: 'Test fiyatı değiştirildi', kayit: 'TST-05 · Saf ton odyometri', eski: '240 ₺', yeni: '260 ₺', ip: '88.250.77.91' },
+  { id: 'LOG-007', tarih: '2026-10-30T16:00:00', kullanici: 'yilmazturk', islem: 'Firma pasife alındı', kayit: 'FR-04 · Pro-Temiz Temizlik', ip: '88.241.12.44' },
+  { id: 'LOG-008', tarih: '2026-10-30T10:15:00', kullanici: 'akaya', islem: 'Olay bildirildi', kayit: 'OL-399 · Ramak Kala', ip: '88.250.77.91' },
   { id: 'LOG-009', tarih: '2026-10-28T13:40:00', kullanici: 'yilmazturk', islem: 'Hesap devre dışı bırakıldı', kayit: 'USR-06 (mdemir)', ip: '88.241.12.44' },
   { id: 'LOG-010', tarih: '2026-10-27T09:00:00', kullanici: 'oyildiz', islem: 'Dışa aktarım', kayit: 'firma-raporu.csv', ip: '85.110.30.7' },
 ]

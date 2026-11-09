@@ -112,7 +112,7 @@ export const useAyarlarStore = create<AyarlarState>()(
       logEkle: (l) => set((s) => ({ loglar: [{ ...l, id: yeniLogId(s.loglar) }, ...s.loglar] })),
     }),
     {
-      name: 'osgbhub-ayarlar-v2', // v2: sağlık taraması kataloğu; eski İSG kayıtları yüklenmesin
+      name: 'isghub-ayarlar',
       storage: guvenliDepo,
       /* Eski persist kayıtlarında kisaAd gibi yeni alanlar eksik olabilir —
          kurum nesnesini seed ile derin birleştir */

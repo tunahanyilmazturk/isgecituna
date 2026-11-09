@@ -236,7 +236,7 @@ export interface StatOge {
 
 export function StatSerit({ ogeler }: { ogeler: StatOge[] }) {
   return (
-    <div className="hidden grid-cols-3 divide-x rounded-xl border bg-card sm:grid lg:grid-cols-6">
+    <div className="grid grid-cols-3 divide-x rounded-xl border bg-card lg:grid-cols-6">
       {ogeler.map((s, i) => (
         <div key={s.label} className={cn('px-3.5 py-2.5', i > 2 && 'border-t lg:border-t-0')}>
           <div className="flex items-center justify-between">

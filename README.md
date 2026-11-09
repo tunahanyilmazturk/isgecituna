@@ -1,4 +1,4 @@
-# osgbhub — İSG Yönetim Sistemi
+# isghub — İSG Yönetim Sistemi
 
 React 19 + TypeScript + Vite + Tailwind v4 ile yazılmış İSG (iş sağlığı ve güvenliği) yönetim prototipi. Veriler Zustand ile tarayıcı `localStorage` alanında tutulur; sunucu tarafı yoktur.
 
@@ -52,7 +52,7 @@ Kullanıcı adı / şifre ile girişte demo yönetici hesabı `yilmazturk` kulla
 src/
   pages/        Route sayfaları (panel, firma portalı, katılımcı portalı, ayarlar)
   components/   Paylaşılan ve modüle özel bileşenler
-  stores/       Zustand store'ları (persist anahtarları: osgbhub-*)
+  stores/       Zustand store'ları (persist anahtarları: isghub-*)
   data/         Demo/tohum verileri ve tipler
   lib/          PDF, Excel, şifre, depolama ve yardımcı modüller
 ```

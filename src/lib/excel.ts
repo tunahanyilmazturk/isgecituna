@@ -1,5 +1,5 @@
 /*
- * osgbhub merkezi Excel (.xlsx) dışa aktarma motoru — ExcelJS tabanlı.
+ * isghub merkezi Excel (.xlsx) dışa aktarma motoru — ExcelJS tabanlı.
  * Tüm modüller sütun/veri tanımlarını verir; görsel tasarım, yazdırma
  * düzeni ve dosya üretimi buradan yönetilir.
  * Üretimde hassas alan kontrolü backend'de de tekrarlanmalıdır.
@@ -229,7 +229,7 @@ const sayfaOlustur = (wb: ExcelJS.Workbook, def: ExcelSayfaDef, idx: number) => 
 
 /* ---------- genel API ---------- */
 
-/** Dosya adı standardı: osgbhub_X_YYYY-MM-DD.xlsx (Türkçe karakterler ASCII'ye iner) */
+/** Dosya adı standardı: isghub_X_YYYY-MM-DD.xlsx (Türkçe karakterler ASCII'ye iner) */
 export const xlsxDosyaAdi = (parca: string): string => {
   const ascii = parca
     .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
@@ -241,7 +241,7 @@ export const xlsxDosyaAdi = (parca: string): string => {
     .replace(/[^\w-]+/g, '_')
     .replace(/_+/g, '_')
     .replace(/^_|_$/g, '')
-  return `osgbhub_${ascii}_${new Date().toISOString().slice(0, 10)}.xlsx`
+  return `isghub_${ascii}_${new Date().toISOString().slice(0, 10)}.xlsx`
 }
 
 /** Tek/çok sayfalı profesyonel Excel dosyası üretip indirir */
@@ -249,7 +249,7 @@ export const xlsxIndir = async (dosyaAdi: string, sayfalar: ExcelSayfaDef[]): Pr
   const { default: ExcelJS } = await import('exceljs')
   const wb = new ExcelJS.Workbook()
   wb.creator = osgbAd()
-  wb.company = 'osgbhub Sağlık Taraması Yönetim Paneli'
+  wb.company = 'isghub İSG Yönetim Sistemi'
   wb.created = new Date()
   sayfalar.forEach((def, i) => sayfaOlustur(wb, def, i))
   const buf = await wb.xlsx.writeBuffer()

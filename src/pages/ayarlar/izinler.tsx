@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
-import { selectCls } from '@/components/form-bits'
+import { selectCls } from '@/components/olaylar/olay-form-utils'
 import { AyarBaslik } from '@/components/ayarlar/settings-bits'
 import {
   hesapGorunenAd,
@@ -30,13 +30,13 @@ import { hesapIzinleri, useIzin } from '@/lib/izin'
 import { useAyarlarStore } from '@/stores/ayarlar-store'
 import { useEkipStore } from '@/stores/ekip-store'
 import { useAuthStore } from '@/stores/auth-store'
-import { useFirmaStore } from '@/stores/saglik-stores'
+import { useFirmalarStore } from '@/stores/firmalar-store'
 import { cn } from '@/lib/utils'
 
 export default function IzinlerPage() {
   const { uyeler, hesaplar, izinleriKaydet, kapsamKaydet } = useEkipStore()
   const { logEkle } = useAyarlarStore()
-  const firmalar = useFirmaStore((s) => s.kayitlar)
+  const { firmalar } = useFirmalarStore()
   const { user } = useAuthStore()
   const yonetebilir = useIzin('ayarlar.izin-yonet')
   const [params] = useSearchParams()

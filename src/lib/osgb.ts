@@ -1,8 +1,8 @@
 import { useAyarlarStore } from '@/stores/ayarlar-store'
 
 /**
- * OSGB kiracı adı — osgbhub'ı kullanan kurumun görünen adı.
- * Ürün adı her zaman 'osgbhub'dur; OSGB adı Ayarlar → Kurum Bilgileri'nden gelir
+ * OSGB kiracı adı — isghub'ı kullanan kurumun görünen adı.
+ * Ürün adı her zaman 'isghub'dur; OSGB adı Ayarlar → Kurum Bilgileri'nden gelir
  * ve belge üstbilgileri, portallar, PDF/Excel çıktılarında kiracıyı temsil eder.
  * Üretimde bu değer tenant bağlamından sunucu tarafında çözülmelidir.
  */

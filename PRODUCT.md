@@ -1,4 +1,4 @@
-# osgbhub
+# isghub
 
 İSG (İş Sağlığı ve Güvenliği) yönetim sistemi. İşverenler ve İSG profesyonelleri için risk değerlendirme, saha denetimi, ramak kala / iş kazası kaydı, eğitim–tatbikat takibi ve mevzuat uyumunu tek panelde toplar.
 

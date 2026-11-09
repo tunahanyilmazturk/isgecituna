@@ -11,7 +11,7 @@ export default function IsAkisiPage() {
     <div className="max-w-3xl">
       <AyarBaslik
         baslik="İş Akışı ve Otomasyon"
-        aciklama="Tarih ve teklif/tarama olaylarına bağlı otomatik işlemler. Kapalı kurallar çalışmaz; kayıt geçmişi korunur."
+        aciklama="Tarih ve olay bazlı otomatik işlemler. Kapalı kurallar çalışmaz; kayıt geçmişi korunur."
       />
       <AyarBolum baslik="Otomasyon Kuralları">
         <div className="space-y-2">

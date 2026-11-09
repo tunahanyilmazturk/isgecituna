@@ -33,6 +33,12 @@ export function MobileBottomNav({
         className="fixed inset-x-3 bottom-2 z-40 lg:hidden"
       >
         <div className="relative isolate overflow-hidden rounded-2xl bg-zinc-950 shadow-[0_12px_40px_-12px_rgba(0,0,0,.8)] ring-1 ring-white/10 backdrop-blur-xl">
+          <img
+            src="/images/isghub-mobile-nav.png"
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover object-[center_72%] opacity-75"
+          />
           <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-b from-zinc-950/10 via-zinc-950/15 to-zinc-950/35" />
           <div className="relative z-10 grid grid-cols-5 items-stretch px-1.5 pt-1.5 pb-[calc(.375rem+env(safe-area-inset-bottom))]">
             {items.map((item) => (

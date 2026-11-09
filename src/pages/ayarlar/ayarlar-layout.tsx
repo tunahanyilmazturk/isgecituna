@@ -25,7 +25,7 @@ const MENU = [
   { to: '/panel/ayarlar/ekip', label: 'Ekip ve Personel', icon: UsersRoundIcon },
   { to: '/panel/ayarlar/bildirim', label: 'Bildirim Ayarları', icon: BellIcon },
   { to: '/panel/ayarlar/guvenlik', label: 'Güvenlik ve Oturumlar', icon: ShieldCheckIcon },
-  { to: '/panel/ayarlar/belgeler', label: 'Rapor ve Belgeler', icon: FileTextIcon },
+  { to: '/panel/ayarlar/belgeler', label: 'Belge ve PDF Ayarları', icon: FileTextIcon },
   { to: '/panel/ayarlar/tanimlar', label: 'Tanımlar ve Kataloglar', icon: BookOpenIcon },
   { to: '/panel/ayarlar/is-akisi', label: 'İş Akışı ve Otomasyon', icon: WorkflowIcon },
   { to: '/panel/ayarlar/entegrasyonlar', label: 'Entegrasyonlar', icon: Link2Icon },

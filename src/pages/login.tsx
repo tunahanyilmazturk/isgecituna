@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router'
 import { Dialog } from '@base-ui/react/dialog'
 import { toast } from 'sonner'
 import {
+  Building2Icon,
   ChevronRightIcon,
   CircleAlertIcon,
   EyeIcon,
   EyeOffIcon,
+  GraduationCapIcon,
   LoaderCircleIcon,
   ShieldCheckIcon,
   XIcon,
@@ -16,9 +18,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/stores/auth-store'
-
-type DemoPortal = 'panel'
+import { useAuthStore, type DemoPortal } from '@/stores/auth-store'
+import { kvkkMetinSeed } from '@/data/personeller'
 
 /* ------------------------------ Marka içeriği ------------------------------ */
 
@@ -35,8 +36,22 @@ const DEMO_BUTONLAR: {
     key: 'panel',
     icon: ShieldCheckIcon,
     ad: 'OSGB Yönetim demosu',
-    alt: 'Firmalar, ekip, personeller, taramalar ve testler',
+    alt: 'Firmalar, personeller, eğitimler ve riskler',
     ton: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  },
+  {
+    key: 'firma',
+    icon: Building2Icon,
+    ad: 'Firma Portalı demosu',
+    alt: 'Çalışanlar, eğitim atamaları ve sertifikalar',
+    ton: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  },
+  {
+    key: 'portal',
+    icon: GraduationCapIcon,
+    ad: 'Katılımcı demosu',
+    alt: 'Eğitimler, sınavlar ve ilerleme durumu',
+    ton: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
   },
 ]
 
@@ -47,7 +62,7 @@ type YasalTur = 'gizlilik' | 'kvkk' | 'kosullar'
 const YASAL: Record<YasalTur, { baslik: string; govde: string }> = {
   gizlilik: {
     baslik: 'Gizlilik Bildirimi',
-    govde: `osgbhub olarak gizliliğinize önem veriyoruz. Bu platformda tutulan veriler, mobil sağlık taraması hizmetlerinin yürütülmesi amacıyla, hesabınızın bağlı olduğu kuruluşun talimatları doğrultusunda işlenir.
+    govde: `isghub olarak gizliliğinize önem veriyoruz. Bu platformda tutulan veriler, iş sağlığı ve güvenliği hizmetlerinin yürütülmesi amacıyla, hesabınızın bağlı olduğu kuruluşun talimatları doğrultusunda işlenir.
 
 Giriş sayfasında tarayıcınızda yalnızca oturum ve görünüm tercihi gibi zorunlu teknik bilgiler saklanır; pazarlama veya üçüncü taraf izleme amaçlı çerez kullanılmaz.
 
@@ -55,11 +70,11 @@ Kişisel verilerin işlenmesine ilişkin ayrıntılı hukuki çerçeve için KVK
   },
   kvkk: {
     baslik: 'KVKK Aydınlatma Metni',
-    govde: 'Ad, soyad, TC kimlik no, iletişim ve sağlık tarama sonuçları gibi kişisel veriler, 6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında; işyeri hekimliği ve iş sağlığı hizmetlerinin yürütülmesi amacıyla işlenir. Erişimler yetki matrisine göre sınırlandırılır ve işlem geçmişine kaydedilir.',
+    govde: kvkkMetinSeed.find((k) => k.aktif)?.icerik ?? '',
   },
   kosullar: {
     baslik: 'Kullanım Koşulları',
-    govde: `osgbhub, mobil sağlık taramalarının yönetimi için kuruluşlara sunulan bir yazılım hizmetidir.
+    govde: `isghub İSG Yönetim Sistemi, iş sağlığı ve güvenliği süreçlerinin yönetilmesi amacıyla kuruluşlara sunulan bir yazılım hizmetidir.
 
 Hesabınız, bağlı olduğunuz kuruluş tarafından oluşturulur ve yetkilendirilir. Platformu yalnızca size tanımlanan yetki kapsamında kullanabilirsiniz; hesap bilgilerinizi üçüncü kişilerle paylaşamazsınız.
 
@@ -85,8 +100,8 @@ export default function LoginPage() {
   const demoLogin = useAuthStore((s) => s.demoLogin)
   const navigate = useNavigate()
 
-  // Yalnız yönetim paneli var; tüm girişler panele yönlendirilir.
-  const hedefRota = () => '/panel'
+  const hedefRota = (tip?: 'admin' | 'portal' | 'firma') =>
+    tip === 'portal' ? '/portal' : tip === 'firma' ? '/firma' : '/panel'
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -110,31 +125,29 @@ export default function LoginPage() {
     }
     const u = useAuthStore.getState().user
     toast.success(`Hoş geldin, ${u?.name?.split(' ')[0] ?? ''}!`)
-    navigate(hedefRota())
+    navigate(hedefRota(u?.tip))
   }
 
   const demoAc = async (portal: DemoPortal) => {
     setDemoYuklenen(portal)
     await new Promise((r) => setTimeout(r, 500))
-    const ok = demoLogin()
+    const ok = demoLogin(portal)
     setDemoYuklenen(null)
     if (!ok) {
       // Yarım kalmış yedek geri yüklendi ve sayfa yenileniyor
       return
     }
+    const u = useAuthStore.getState().user
     toast.success(`Demo oturumu başladı — çıkışta veriler sıfırlanır.`)
-    navigate(hedefRota())
+    navigate(hedefRota(u?.tip))
   }
 
   return (
     <div className="dark relative min-h-svh overflow-hidden bg-[#11110f]">
-      {/* Yedek zemin: görsel yoksa marka renkli gradyan görünür */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,158,11,0.25),transparent_60%),linear-gradient(160deg,#1c1a16,#0a0a0a)]" />
       <img
-        src="/images/osgbhub-giris-gorsel.png"
+        src="/images/isghub-giris-saha.png?v=2"
         alt=""
         aria-hidden="true"
-        onError={(e) => (e.currentTarget.style.display = 'none')}
         className="absolute inset-0 size-full object-cover object-center"
       />
       <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-black/10" />
@@ -142,7 +155,7 @@ export default function LoginPage() {
       {/* ------------------------------- Sağ: giriş ------------------------------ */}
       <div className="relative z-10 flex min-h-svh flex-col px-6 sm:px-10">
         <div className="absolute top-6 left-6 flex items-center gap-3 text-white sm:top-8 sm:left-10">
-          <img src="/images/osgbhub-logo.svg" alt="osgbhub" className="h-9 w-auto" />
+          <img src="/images/isghub-logo.svg" alt="isghub" className="h-9 w-auto" />
         </div>
 
         <div className="flex flex-1 items-center justify-start pt-24 pb-8 sm:pt-28 lg:pt-20">
@@ -150,7 +163,7 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <h1 className="text-2xl font-semibold tracking-tight">Tekrar hoş geldiniz</h1>
               <p className="text-[13px] leading-relaxed text-muted-foreground">
-                Hesabınıza giriş yapın — yönetim paneline yönlendirilirsiniz.
+                Hesabınıza giriş yapın — yönetim, firma ve katılımcı hesapları tek
                 girişten kendi portalına yönlendirilir.
               </p>
             </div>
@@ -282,7 +295,7 @@ export default function LoginPage() {
         </div>
 
         <p className="pb-5 text-center text-[11px] text-white/70">
-          © 2026 osgbhub
+          © 2026 isghub
         </p>
       </div>
 
@@ -295,7 +308,7 @@ export default function LoginPage() {
               Şifre sıfırlama
             </Dialog.Title>
             <Dialog.Description className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Şifrenizi sıfırlamak için kuruluşunuzdaki yöneticinize veya osgbhub destek
+              Şifrenizi sıfırlamak için kuruluşunuzdaki yöneticinize veya isghub destek
               ekibine başvurun. Size iletilen davet bağlantısıyla yeni şifrenizi
               belirleyebilirsiniz.
             </Dialog.Description>

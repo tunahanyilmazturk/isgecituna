@@ -6,23 +6,19 @@ import { Alan, Sec } from '@/components/form-bits'
 import { AyarBaslik, AyarBolum, Satir, Toggle } from '@/components/ayarlar/settings-bits'
 import { useAyarlarStore } from '@/stores/ayarlar-store'
 import { useEkipStore } from '@/stores/ekip-store'
-import { useFirmaStore } from '@/stores/saglik-stores'
-import { useTaramaStore, useTeklifStore } from '@/stores/saglik-stores'
-import { teklifTutari } from '@/data/saglik'
+import { useFirmalarStore } from '@/stores/firmalar-store'
 import { useAuthStore } from '@/stores/auth-store'
 import { xlsxDosyaAdi, xlsxIndir, type ExcelSayfaDef } from '@/lib/excel'
 
 export default function VeriPage() {
   const { uyeler, hesaplar } = useEkipStore()
-  const firmalar = useFirmaStore((s) => s.kayitlar)
-  const teklifler = useTeklifStore((s) => s.kayitlar)
-  const taramalar = useTaramaStore((s) => s.kayitlar)
+  const { firmalar, katip } = useFirmalarStore()
   const { loglar, logEkle } = useAyarlarStore()
   const { user } = useAuthStore()
   const [saklama, setSaklama] = useState('5 yıl')
   const [yedek, setYedek] = useState(true)
 
-  const aktar = (tur: 'firmalar' | 'ekip' | 'teklifler' | 'taramalar' | 'loglar') => {
+  const aktar = (tur: 'firmalar' | 'ekip' | 'katip' | 'loglar') => {
     let parca: string = tur
     let sayfa: ExcelSayfaDef | undefined
     if (tur === 'firmalar') {
@@ -35,10 +31,10 @@ export default function VeriPage() {
           { label: 'Kod', minGenislik: 10 },
           { label: 'Unvan', minGenislik: 28, wrap: true },
           { label: 'Vergi No', minGenislik: 14 },
-          { label: 'İl', minGenislik: 12 },
+          { label: 'Tehlike', minGenislik: 12 },
           { label: 'Durum', minGenislik: 12 },
         ],
-        satirlar: firmalar.map((f) => [f.id, f.unvan, f.vergiNo, f.il, f.durum]),
+        satirlar: firmalar.map((f) => [f.kod, f.unvan, f.vergiNo, f.tehlikeSinifi, f.durum]),
       }
     }
     if (tur === 'ekip') {
@@ -56,41 +52,20 @@ export default function VeriPage() {
         satirlar: uyeler.map((u) => [u.id, `${u.ad} ${u.soyad}`, u.gorev, u.durum]),
       }
     }
-    if (tur === 'teklifler') {
-      parca = 'Teklif_Kayitlari'
+    if (tur === 'katip') {
+      parca = 'ISG_KATIP_Kayitlari'
       sayfa = {
-        ad: 'Teklifler',
-        baslik: 'Teklif Kayıtları',
+        ad: 'İSG-KATİP',
+        baslik: 'İSG-KATİP Kayıtları',
         altBilgi: 'Ayarlar · veri dışa aktarımı',
         kolonlar: [
-          { label: 'Teklif no', minGenislik: 16 },
-          { label: 'Firma', minGenislik: 28, wrap: true },
-          { label: 'Hizmet', minGenislik: 22 },
-          { label: 'Kişi', minGenislik: 8 },
-          { label: 'Toplam (₺)', minGenislik: 14 },
-          { label: 'Tarih', tip: 'tarih' },
+          { label: 'Kayıt', minGenislik: 12 },
+          { label: 'Firma', minGenislik: 14 },
+          { label: 'Başlangıç', tip: 'tarih' },
+          { label: 'Bitiş', tip: 'tarih' },
           { label: 'Durum', minGenislik: 12 },
         ],
-        satirlar: teklifler.map((t) => [t.no, t.firma, t.hizmet, t.kisiSayisi, teklifTutari(t), t.tarih, t.durum]),
-      }
-    }
-    if (tur === 'taramalar') {
-      parca = 'Tarama_Kayitlari'
-      sayfa = {
-        ad: 'Taramalar',
-        baslik: 'Tarama Kayıtları',
-        altBilgi: 'Ayarlar · veri dışa aktarımı',
-        kolonlar: [
-          { label: 'Tarih', tip: 'tarih' },
-          { label: 'Saat', minGenislik: 8 },
-          { label: 'Firma', minGenislik: 28, wrap: true },
-          { label: 'Hizmet', minGenislik: 22 },
-          { label: 'Lokasyon', minGenislik: 22, wrap: true },
-          { label: 'Planlanan', minGenislik: 10 },
-          { label: 'Tamamlanan', minGenislik: 12 },
-          { label: 'Durum', minGenislik: 12 },
-        ],
-        satirlar: taramalar.map((t) => [t.tarih, t.saat, t.firma, t.hizmet, t.lokasyon, t.kisiSayisi, t.tamamlanan, t.durum]),
+        satirlar: katip.map((k) => [k.id, k.firmaId, k.sozlesmeBaslangic, k.sozlesmeBitis, k.durum]),
       }
     }
     if (tur === 'loglar') {
@@ -127,8 +102,7 @@ export default function VeriPage() {
           {[
             ['firmalar', `Firma kayıtları (${firmalar.length})`],
             ['ekip', `Personel kayıtları (${uyeler.length})`],
-            ['teklifler', `Teklif kayıtları (${teklifler.length})`],
-            ['taramalar', `Tarama kayıtları (${taramalar.length})`],
+            ['katip', `İSG-KATİP kayıtları (${katip.length})`],
             ['loglar', `İşlem geçmişi (${loglar.length})`],
           ].map(([k, label]) => (
             <Button key={k} variant="outline" className="justify-start" onClick={() => aktar(k as 'firmalar')}>

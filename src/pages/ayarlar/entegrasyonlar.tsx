@@ -27,7 +27,7 @@ export default function EntegrasyonlarPage() {
       <AyarBolum baslik="Bağlantılar">
         <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2.5 text-[12px] text-amber-700 dark:text-amber-400">
           <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
-          e-Nabız için resmî yetkilendirme henüz sağlanmadı. Kayıtlar manuel/doğrulanmış
+          İSG-KATİP ve İBYS için resmî yetkilendirme henüz sağlanmadı. Kayıtlar manuel/doğrulanmış
           dosya bazlı tutulur; "Bağlı" gösterimi yalnızca gerçek API doğrulaması sonrası açılır.
         </div>
         <div className="space-y-3">

@@ -1,18 +1,18 @@
 import {
+  AwardIcon,
+  BookOpenIcon,
   Building2Icon,
-  BarChart3Icon,
+  ClipboardCheckIcon,
+  GraduationCapIcon,
   LayoutDashboardIcon,
-  PackageIcon,
-  CalendarDaysIcon,
-  FlaskConicalIcon,
-  HeartPulseIcon,
-  ReceiptTextIcon,
-  SettingsIcon,
-  UserRoundIcon,
+  ShieldAlertIcon,
+  ShieldCheckIcon,
+  SirenIcon,
   UsersIcon,
-  WrenchIcon,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { modulGetir } from '@/data/rehber'
+import { rehberGetir, useRehberStore } from '@/stores/rehber-store'
 
 export type NavItem = {
   to: string
@@ -22,107 +22,134 @@ export type NavItem = {
   children?: { to: string; label: string; end?: boolean }[]
 }
 
-/**
- * Kenar çubuğu bölümleri, iş akışının sırasına göre: özet → günlük iş (teklif, tarama, takvim)
- * → müşteri kayıtları → kaynaklar (ekip, ekipman) → kataloglar → sistem.
- */
 export const navSections: { label: string; items: NavItem[] }[] = [
   {
-    label: 'Özet',
-    items: [{ to: '/panel', label: 'Genel Bakış', icon: LayoutDashboardIcon, end: true }],
-  },
-  {
-    label: 'İş akışı',
+    label: 'Modüller',
     items: [
-      { to: '/panel/teklifler', label: 'Teklif', icon: ReceiptTextIcon },
-      { to: '/panel/taramalar', label: 'Taramalar', icon: HeartPulseIcon },
-      { to: '/panel/takvim', label: 'Takvim', icon: CalendarDaysIcon },
+      { to: '/panel', label: 'Genel Bakış', icon: LayoutDashboardIcon, end: true },
+      {
+        to: '/panel/risk',
+        label: 'Risk Değerlendirme',
+        icon: ShieldAlertIcon,
+        children: [
+          { to: '/panel/risk', label: 'Değerlendirmeler', end: true },
+          { to: '/panel/aksiyonlar', label: 'Aksiyonlar' },
+        ],
+      },
+      { to: '/panel/olaylar', label: 'Olay Bildirimleri', icon: SirenIcon },
+      { to: '/panel/denetimler', label: 'Denetimler', icon: ClipboardCheckIcon },
     ],
   },
   {
-    label: 'Müşteriler',
+    label: 'Eğitim & Belgeler',
+    items: [
+      {
+        to: '/panel/egitimler',
+        label: 'Eğitimler',
+        icon: GraduationCapIcon,
+        children: [
+          { to: '/panel/egitimler', label: 'Katalog', end: true },
+          { to: '/panel/egitim-atamalari', label: 'Atamalar' },
+        ],
+      },
+      {
+        to: '/panel/sertifikalar',
+        label: 'Sertifikalar',
+        icon: AwardIcon,
+        children: [
+          { to: '/panel/sertifikalar', label: 'Belgeler', end: true },
+          { to: '/panel/sertifika-tasarimlari', label: 'Tasarımlar' },
+          { to: '/panel/sertifika-onay', label: 'Onay bekleyen' },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Organizasyon',
     items: [
       { to: '/panel/firmalar', label: 'Firmalar', icon: Building2Icon },
-      { to: '/panel/personeller', label: 'Firma personeli', icon: UsersIcon },
+      { to: '/panel/isg-katip', label: 'İSG-KATİP', icon: ShieldCheckIcon },
+      {
+        to: '/panel/personeller',
+        label: 'Personeller',
+        icon: UsersIcon,
+        children: [
+          { to: '/panel/personeller', label: 'Liste', end: true },
+          { to: '/panel/personeller/toplu', label: 'Toplu Oluşturma' },
+        ],
+      },
+      { to: '/panel/ekip', label: 'Ekip', icon: UsersIcon },
     ],
   },
   {
-    label: 'Ekip ve ekipman',
+    label: 'Destek',
     items: [
-      { to: '/panel/ekip', label: 'Ekip', icon: UserRoundIcon },
-      { to: '/panel/ekipmanlar', label: 'Ekipmanlar', icon: WrenchIcon },
-    ],
-  },
-  {
-    label: 'Katalog',
-    items: [
-      { to: '/panel/testler', label: 'Testler', icon: FlaskConicalIcon },
-      { to: '/panel/test-paketleri', label: 'Test paketleri', icon: PackageIcon },
-    ],
-  },
-  {
-    label: 'Sistem',
-    items: [
-      { to: '/panel/istatistikler', label: 'İstatistikler', icon: BarChart3Icon },
-      { to: '/panel/ayarlar', label: 'Ayarlar', icon: SettingsIcon },
+      {
+        to: '/panel/rehber',
+        label: 'Kullanım Merkezi',
+        icon: BookOpenIcon,
+        children: [
+          { to: '/panel/rehber', label: 'Rehber', end: true },
+          { to: '/panel/rehber/yonetim', label: 'İçerik Yönetimi' },
+        ],
+      },
     ],
   },
 ]
 
 const allItems = navSections.flatMap((s) => s.items)
 
-const ayarlarAltSayfalar: Record<string, string> = {
-  genel: 'Genel Ayarlar',
-  kurum: 'Kurum Bilgileri',
-  kullanicilar: 'Kullanıcı Yönetimi',
-  izinler: 'Erişim İzinleri',
-  ekip: 'Ekip ve Personel',
-  bildirim: 'Bildirim Ayarları',
-  guvenlik: 'Güvenlik ve Oturumlar',
-  belgeler: 'Rapor ve Belgeler',
-  tanimlar: 'Tanımlar ve Kataloglar',
-  'is-akisi': 'İş Akışı ve Otomasyon',
-  entegrasyonlar: 'Entegrasyonlar',
-  veri: 'Veri ve Dışa Aktarım',
-  gecmis: 'İşlem Geçmişi',
-}
-
-/** Kırıntı: etiket + tıklanınca açılacak rota (rotası olmayan kırıntı düz metin kalır). */
-export interface Kirinti {
-  label: string
-  to?: string
-}
-
-/** Sayfa kırıntısı: üst menü + (varsa) alt sayfa; her biri bağlantıdır. */
-export const pageCrumbs = (pathname: string): Kirinti[] => {
-  const ustMenu = (to: string) => {
-    const item = allItems.find((i) => i.to === to)
-    return { label: item?.label ?? to, to }
+export const pageCrumbs = (pathname: string): string[] => {
+  if (pathname === '/panel/rehber/yonetim') return ['Kullanım Merkezi', 'İçerik Yönetimi']
+  const rehberEslesme = pathname.match(/^\/panel\/rehber\/([^/]+)(?:\/([^/]+))?$/)
+  if (rehberEslesme) {
+    const m = modulGetir(rehberEslesme[1])
+    if (!m) return ['Kullanım Merkezi']
+    if (!rehberEslesme[2]) return ['Kullanım Merkezi', m.ad]
+    const r = rehberGetir(m.id, rehberEslesme[2], useRehberStore.getState())
+    return ['Kullanım Merkezi', m.ad, r?.baslik ?? 'Rehber']
   }
-  if (pathname === '/panel') return [{ label: 'Genel Bakış' }]
-  if (pathname === '/panel/teklifler/yeni') return [ustMenu('/panel/teklifler'), { label: 'Yeni teklif' }]
-  if (pathname.startsWith('/panel/teklifler/')) return [ustMenu('/panel/teklifler'), { label: 'Teklif detayı' }]
-  if (pathname === '/panel/taramalar/yeni') return [ustMenu('/panel/taramalar'), { label: 'Yeni tarama' }]
-  if (pathname.startsWith('/panel/taramalar/')) return [ustMenu('/panel/taramalar'), { label: 'Tarama detayı' }]
-  if (pathname.startsWith('/panel/firmalar/')) return [ustMenu('/panel/firmalar'), { label: 'Firma Detayı' }]
-  if (pathname.startsWith('/panel/ayarlar')) {
-    const seg = pathname.split('/')[3]
-    return ayarlarAltSayfalar[seg]
-      ? [ustMenu('/panel/ayarlar'), { label: ayarlarAltSayfalar[seg], to: `/panel/ayarlar/${seg}` }]
-      : [ustMenu('/panel/ayarlar')]
-  }
-  if (pathname === '/panel/profil') return [{ label: 'Profil', to: '/panel/profil' }]
-  // Segment bazlı eşleşme: /panel/ekip, /panel/ekipmanlar'ı kapsamaz
-  const eslesir = (to: string, end?: boolean) =>
-    pathname === to || (!end && pathname.startsWith(`${to}/`))
+  if (pathname === '/panel/olaylar/yeni') return ['Olay Bildirimleri', 'Yeni Olay']
+  if (pathname === '/panel/risk/yeni') return ['Risk Değerlendirme', 'Yeni Değerlendirme']
+  if (/^\/panel\/risk\/[^/]+$/.test(pathname)) return ['Risk Değerlendirme', 'Değerlendirme Detayı']
+  if (pathname === '/panel/egitimler/yeni') return ['Eğitimler', 'Yeni Eğitim']
+  if (pathname === '/panel/egitim-atamalari/yeni') return ['Eğitim Atamaları', 'Toplu Atama']
+  if (pathname.endsWith('/duzenle') && pathname.startsWith('/panel/egitimler/'))
+    return ['Eğitimler', 'Eğitim Düzenleme']
+  if (pathname.startsWith('/panel/egitimler/')) return ['Eğitimler', 'Eğitim Oynatıcı']
+  if (pathname === '/panel/personeller/toplu') return ['Personeller', 'Toplu Oluşturma']
+  if (pathname.startsWith('/panel/personeller/')) return ['Personeller', 'Personel Detayı']
+  if (pathname.startsWith('/panel/firmalar/')) return ['Firmalar', 'Firma Detayı']
+  if (pathname.startsWith('/panel/ekip/')) return ['Ekip', 'Personel Detayı']
   for (const item of allItems) {
-    const child = item.children?.find((c) => eslesir(c.to, c.end))
+    const child = item.children?.find((c) =>
+      c.end ? pathname === c.to : pathname.startsWith(c.to),
+    )
     if (child) {
-      return child.to === item.to
-        ? [{ label: item.label, to: item.to }]
-        : [{ label: item.label, to: item.to }, { label: child.label, to: child.to }]
+      // Ana sayfa değilse ve çocuk ebeveynle aynı rotadaysa tek kırıntı yeter
+      return child.to === item.to ? [item.label] : [item.label, child.label]
     }
-    if (eslesir(item.to, item.end)) return [{ label: item.label, to: item.to }]
+    if (item.end ? pathname === item.to : pathname.startsWith(item.to)) return [item.label]
   }
+  if (pathname.startsWith('/panel/ayarlar')) {
+    const sub: Record<string, string> = {
+      genel: 'Genel Ayarlar',
+      kurum: 'Kurum Bilgileri',
+      kullanicilar: 'Kullanıcı Yönetimi',
+      izinler: 'Erişim İzinleri',
+      ekip: 'Ekip ve Personel',
+      bildirim: 'Bildirim Ayarları',
+      guvenlik: 'Güvenlik ve Oturumlar',
+      belgeler: 'Belge ve PDF Ayarları',
+      tanimlar: 'Tanımlar ve Kataloglar',
+      'is-akisi': 'İş Akışı ve Otomasyon',
+      entegrasyonlar: 'Entegrasyonlar',
+      veri: 'Veri ve Dışa Aktarım',
+      gecmis: 'İşlem Geçmişi',
+    }
+    const seg = pathname.split('/')[3]
+    return sub[seg] ? ['Ayarlar', sub[seg]] : ['Ayarlar']
+  }
+  if (pathname === '/panel/profil') return ['Profil']
   return []
 }

@@ -37,7 +37,7 @@ export default function BelgelerPage() {
           <Alan label="Logo dosyası">
             <Input value={form.logoNotu} onChange={(e) => setForm({ ...form, logoNotu: e.target.value })} />
           </Alan>
-          <Alan label="Belge numara öneki" aciklama="Yeni belge numaralarının başına eklenir (örn. TKL-2026-000001).">
+          <Alan label="Sertifika numara öneki" aciklama="Yeni sertifika numaralarının başına eklenir (örn. SRT-2026-000001).">
             <Input value={form.sertifikaOnEk} onChange={(e) => setForm({ ...form, sertifikaOnEk: e.target.value })} />
           </Alan>
         </FormGrid>

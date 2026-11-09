@@ -30,8 +30,7 @@ export const zamanOnce = (iso: string, bugun: string) => {
 export const gunKaydir = (iso: string, n: number) => {
   const d = new Date(`${iso}T00:00:00`)
   d.setDate(d.getDate() + n)
-  // Yerel tarih: toISOString UTC'ye çevirdiği için UTC+ saat dilimlerinde bir gün kayardı
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return d.toISOString().slice(0, 10)
 }
 
 /** Son N ayın YYYY-MM etiket listesi (bugunun ayı dahil, eski→yeni) */

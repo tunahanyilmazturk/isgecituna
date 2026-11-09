@@ -16,6 +16,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "paths": {
+      "@saglik/*": ["./src/modules/saglik/*"],
       "@/*": ["./src/*"]
     },
 

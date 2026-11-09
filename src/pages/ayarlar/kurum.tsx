@@ -56,7 +56,7 @@ export default function KurumAyarlarPage() {
       />
       <AyarBolum
         baslik="Kurum logosu"
-        aciklama="OSGB logonuzu ekleyin; rapor ve teklif üstbilgilerinde kurum baş harfleri yerine kullanılsın."
+        aciklama="OSGB logonuzu ekleyin; rapor ve sertifika üstbilgilerinde kurum baş harfleri yerine kullanılsın."
       >
         <div className="grid gap-5 sm:grid-cols-[156px_minmax(0,1fr)] sm:items-center">
           <div className="flex aspect-square max-h-36 items-center justify-center overflow-hidden rounded-2xl border bg-muted/30 p-4">

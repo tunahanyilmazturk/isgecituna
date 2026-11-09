@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { SearchIcon } from 'lucide-react'
 import { navSections } from '@/components/nav-items'
-import { useEkipmanStore, useTaramaStore, useTeklifStore, useTestStore } from '@/stores/saglik-stores'
-import { formatKisa } from '@/lib/date'
+import { aksiyonlar, olaylar } from '@/data/dashboard'
+import { useDenetimlerStore } from '@/stores/denetimler-store'
+import { useRehberStore, modulRehberleri } from '@/stores/rehber-store'
+import { kapsamModulleri } from '@/data/rehber'
 import { cn } from '@/lib/utils'
 
 type Item = { label: string; hint?: string; to: string; group: string }
@@ -14,20 +16,28 @@ export function TopbarSearch() {
   const [sel, setSel] = useState(0)
   const navigate = useNavigate()
   const listRef = useRef<HTMLDivElement>(null)
-  const teklifler = useTeklifStore((s) => s.kayitlar)
-  const taramalar = useTaramaStore((s) => s.kayitlar)
-  const ekipmanlar = useEkipmanStore((s) => s.kayitlar)
-  const testler = useTestStore((s) => s.kayitlar)
+  const denetimler = useDenetimlerStore((s) => s.denetimler)
+  const rehberStore = useRehberStore()
 
   const items: Item[] = useMemo(
     () => [
       ...navSections.flatMap((s) => s.items).map((i) => ({ label: i.label, to: i.to, group: 'Sayfalar' })),
-      ...teklifler.map((t) => ({ label: `${t.no} — ${t.firma}`, hint: `${t.hizmet} · ${t.durum}`, to: '/panel/teklifler', group: 'Teklifler' })),
-      ...taramalar.map((t) => ({ label: `${t.firma}`, hint: `${formatKisa(t.tarih)} · ${t.hizmet} · ${t.durum}`, to: '/panel/taramalar', group: 'Taramalar' })),
-      ...ekipmanlar.map((e) => ({ label: e.ad, hint: `${e.seriNo} · ${e.durum}`, to: '/panel/ekipmanlar', group: 'Ekipmanlar' })),
-      ...testler.map((t) => ({ label: t.ad, hint: `${t.kategori} · ${t.fiyat.toLocaleString('tr-TR')} ₺`, to: '/panel/testler', group: 'Testler' })),
+      { label: 'Ayarlar', to: '/panel/ayarlar', group: 'Sayfalar' },
+      { label: 'Aksiyonlar', to: '/panel/aksiyonlar', group: 'Sayfalar' },
+      ...aksiyonlar.map((a) => ({ label: a.baslik, hint: a.id, to: '/panel/aksiyonlar', group: 'Aksiyonlar' })),
+      ...olaylar.map((o) => ({ label: o.baslik, hint: o.id, to: '/panel/olaylar', group: 'Olaylar' })),
+      ...denetimler.map((d) => ({ label: `${d.no} — ${d.baslik}`, hint: `${d.turAd} · ${d.durum}`, to: `/panel/denetimler/${d.id}`, group: 'Denetimler' })),
+      ...kapsamModulleri('panel').flatMap((m) => [
+        { label: `Kullanım Merkezi: ${m.ad}`, hint: 'Rehber', to: `/panel/rehber/${m.id}`, group: 'Kullanım Merkezi' },
+        ...modulRehberleri(m, rehberStore).map((r) => ({
+          label: r.baslik,
+          hint: `${m.ad} · ${r.sure} dk`,
+          to: `/panel/rehber/${m.id}/${r.id}`,
+          group: 'Kullanım Merkezi',
+        })),
+      ]),
     ],
-    [teklifler, taramalar, ekipmanlar, testler],
+    [denetimler, rehberStore],
   )
 
   const openPalette = () => {
@@ -119,7 +129,7 @@ export function TopbarSearch() {
                   setSel(0)
                 }}
                 onKeyDown={onKey}
-                placeholder="Sayfa, teklif veya tarama ara…"
+                placeholder="Sayfa, aksiyon veya olay ara…"
                 className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
               <kbd className="rounded border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">

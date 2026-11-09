@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Pill } from '@/components/pill'
 import { cn } from '@/lib/utils'
 import {
@@ -13,45 +12,14 @@ import {
   type PersonelDurum,
 } from '@/data/ekip'
 
-/**
- * Kişi avatarı. Öncelik: yüklenen fotoğraf → cinsiyete göre varsayılan avatar → baş harfler.
- * Görsel yüklenemezse baş harflere düşer.
- */
-export function Avatar({
-  uye,
-  boyut = 'md',
-}: {
-  uye: Pick<EkipUye, 'ad' | 'soyad'> & Partial<Pick<EkipUye, 'cinsiyet' | 'fotograf'>>
-  boyut?: 'sm' | 'md' | 'lg'
-}) {
-  const [hata, setHata] = useState(false)
-  const kaynak = uye.fotograf || (uye.cinsiyet ? `/images/avatar-${uye.cinsiyet === 'Kadın' ? 'kadin' : 'erkek'}.png` : undefined)
-  const boyutSinif = cn(
-    'flex shrink-0 items-center justify-center overflow-hidden rounded-full',
-    boyut === 'sm' && 'size-6 text-[10px]',
-    boyut === 'md' && 'size-8 text-xs',
-    boyut === 'lg' && 'size-12 text-sm',
-  )
-
-  if (kaynak && !hata) {
-    return (
-      <span className={cn(boyutSinif, 'bg-amber-500/15')}>
-        <img
-          src={kaynak}
-          alt=""
-          aria-hidden="true"
-          onError={() => setHata(true)}
-          className="size-full object-cover"
-        />
-      </span>
-    )
-  }
-
+export function Avatar({ uye, boyut = 'md' }: { uye: Pick<EkipUye, 'ad' | 'soyad'>; boyut?: 'sm' | 'md' | 'lg' }) {
   return (
     <span
       className={cn(
-        boyutSinif,
-        'bg-amber-500/15 font-semibold text-amber-700 dark:bg-amber-400/15 dark:text-amber-400',
+        'flex shrink-0 items-center justify-center rounded-full bg-amber-500/15 font-semibold text-amber-700 dark:bg-amber-400/15 dark:text-amber-400',
+        boyut === 'sm' && 'size-6 text-[10px]',
+        boyut === 'md' && 'size-8 text-xs',
+        boyut === 'lg' && 'size-12 text-sm',
       )}
     >
       {initialsOf(uye)}
@@ -80,7 +48,7 @@ export function GorevBadge({ gorev }: { gorev: GorevTuru }) {
 
 export function SinifBadge({ sinif }: { sinif?: 'A' | 'B' | 'C' }) {
   if (!sinif) return <span className="text-muted-foreground">—</span>
-  const tone = sinif === 'A' ? 'violet' : sinif === 'B' ? 'amber' : 'violet'
+  const tone = sinif === 'A' ? 'violet' : sinif === 'B' ? 'amber' : 'sky'
   return <Pill tone={tone}>{sinif} Sınıfı</Pill>
 }
 

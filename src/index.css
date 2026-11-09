@@ -133,10 +133,6 @@
   input, textarea {
     @apply caret-amber-500;
     }
-  select option {
-    background-color: var(--popover);
-    color: var(--popover-foreground);
-    }
 }
 
 @keyframes rise-in {

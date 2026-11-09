@@ -5,7 +5,7 @@ import {
   VideoIcon,
 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
-export const selectCls = 'h-8 w-full appearance-none rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring dark:bg-input/30'
+import { selectCls } from '@/components/olaylar/olay-form-utils'
 
 export function Alan({
   label,

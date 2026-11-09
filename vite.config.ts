@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
+      '@saglik': path.resolve(import.meta.dirname, './src/modules/saglik'),
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },

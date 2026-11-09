@@ -1,18 +1,18 @@
-import { StrictMode } from 'react'
+import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router'
-import { ThemeProvider } from '@/lib/theme'
-import { Toaster } from '@/components/ui/sonner'
-import './index.css'
-import App from './App.tsx'
+
+/* Platform yönlendirmesi: yol önekine göre ilgili modül yüklenir (her modül kendi CSS'ini getirir) */
+const yol = window.location.pathname
+const Modul = yol.startsWith('/saglik')
+  ? lazy(() => import('./modules/saglik/entry'))
+  : yol.startsWith('/isg')
+    ? lazy(() => import('./modules/isg/entry'))
+    : lazy(() => import('./platform/Secim'))
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-      <Toaster />
-    </ThemeProvider>
+    <Suspense fallback={null}>
+      <Modul />
+    </Suspense>
   </StrictMode>,
 )

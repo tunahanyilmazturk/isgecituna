@@ -1,23 +1,17 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
-import { ChevronDownIcon, ShieldCheckIcon } from 'lucide-react'
+import { ChevronDownIcon, SettingsIcon, ShieldCheckIcon } from 'lucide-react'
 import { navSections } from '@/components/nav-items'
-import { BUGUN, gunEkle } from '@/data/saglik'
+import { aksiyonlar, olaylar, sertifikaOnaylari } from '@/data/dashboard'
 import { useOsgb } from '@/lib/osgb'
 import { cn } from '@/lib/utils'
-import { useTaramaStore, useTeklifStore } from '@/stores/saglik-stores'
 
-/** Menü rozetleri: bugün-yarın planlı taramalar ve cevap bekleyen (gönderilmiş) teklifler */
-function useRozetler(): Record<string, number> {
-  const taramalar = useTaramaStore((s) => s.kayitlar)
-  const teklifler = useTeklifStore((s) => s.kayitlar)
-  return useMemo(() => {
-    const yarin = gunEkle(1)
-    return {
-      '/panel/taramalar': taramalar.filter((t) => t.durum === 'Planlandı' && t.tarih >= BUGUN && t.tarih <= yarin).length,
-      '/panel/teklifler': teklifler.filter((t) => t.durum === 'Gönderildi').length,
-    }
-  }, [taramalar, teklifler])
+const badges: Record<string, number> = {
+  '/panel/olaylar': olaylar.filter((o) => o.durum === 'İncelemede').length,
+  '/panel/aksiyonlar': aksiyonlar.length,
+  '/panel/sertifika-onay': sertifikaOnaylari.filter(
+    (s) => s.durum === 'Bekliyor',
+  ).length,
 }
 
 const navClass = (isActive: boolean, collapsed?: boolean) =>
@@ -30,7 +24,7 @@ const navClass = (isActive: boolean, collapsed?: boolean) =>
 
 const popRow = (isActive: boolean) =>
   cn(
-    'flex items-center gap-2 rounded-md px-2 py-1 text-xs text-popover-foreground transition-colors hover:bg-accent',
+    'flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-popover-foreground transition-colors hover:bg-accent',
     isActive && 'bg-accent font-medium',
   )
 
@@ -52,9 +46,9 @@ function RailFlyout({
 }) {
   return (
     <div className="pointer-events-none invisible absolute top-1/2 left-full z-50 -translate-x-1 -translate-y-1/2 pl-2 opacity-0 transition-all duration-150 group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:translate-x-0 group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:visible group-hover:translate-x-0 group-hover:opacity-100">
-      <div className="w-max min-w-36 rounded-lg border bg-popover p-1 shadow-md">
+      <div className="min-w-44 rounded-xl border bg-popover p-1.5 shadow-lg">
         {title && (
-          <p className="px-2 pt-0.5 pb-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+          <p className="px-2.5 pt-1 pb-1.5 text-xs font-medium text-muted-foreground">
             {title}
           </p>
         )}
@@ -73,7 +67,6 @@ export function AppSidebarContent({
 }) {
   const { pathname } = useLocation()
   const kurum = useOsgb()
-  const badges = useRozetler()
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
       navSections
@@ -98,7 +91,7 @@ export function AppSidebarContent({
             to="/panel"
             onClick={onNavigate}
             className="flex min-w-0 items-center gap-2.5 rounded-lg py-1 focus-visible:outline-none"
-            aria-label="osgbhub genel bakış"
+            aria-label="isghub genel bakış"
           >
             {collapsed ? (
               <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-400">
@@ -106,7 +99,7 @@ export function AppSidebarContent({
               </span>
             ) : (
               <span className="min-w-0">
-                <img src="/images/osgbhub-logo.svg" alt="osgbhub" className="h-7 w-auto" />
+                <img src="/images/isghub-logo.svg" alt="isghub" className="h-7 w-auto" />
                 <span className="block truncate text-[10px] font-medium text-zinc-500">
                   {kurum.kisaAd || kurum.unvan}
                 </span>
@@ -281,6 +274,32 @@ export function AppSidebarContent({
         ))}
       </nav>
 
+      <div className="space-y-0.5 border-t border-zinc-800 px-2 py-3">
+        <div className="group relative">
+          <NavLink
+            to="/panel/ayarlar"
+            onClick={onNavigate}
+            title={collapsed ? 'Ayarlar' : undefined}
+            className={({ isActive }) => navClass(isActive, collapsed)}
+          >
+            <SettingsIcon className="size-4 shrink-0" />
+            {!collapsed && (
+              <span className="min-w-0 flex-1 truncate">Ayarlar</span>
+            )}
+          </NavLink>
+          {collapsed && (
+            <RailFlyout>
+              <NavLink
+                to="/panel/ayarlar"
+                onClick={onNavigate}
+                className={({ isActive }) => popRow(isActive)}
+              >
+                Ayarlar
+              </NavLink>
+            </RailFlyout>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

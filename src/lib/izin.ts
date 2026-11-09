@@ -33,10 +33,10 @@ export const izinVar = (hesap: KullaniciHesap | undefined, key: string): boolean
 /** Aktif oturum sahibinin hesabıyla izin kontrolü yapan hook */
 export const useIzin = (key: string): boolean =>
   useEkipStore((s) => {
-    const kul = localStorage.getItem('osgbhub-auth')
+    const kul = localStorage.getItem('isghub-auth')
     if (!kul) return false
     try {
-      // osgbhub-auth → { state: { user: { username } } }
+      // isghub-auth → { state: { user: { username } } }
       const kullaniciAdi = JSON.parse(kul).state?.user?.username
       return izinVar(s.hesaplar.find((h) => h.kullaniciAdi === kullaniciAdi), key)
     } catch {
